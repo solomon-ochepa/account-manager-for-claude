@@ -4,9 +4,11 @@
 [![Downloads](https://img.shields.io/github/downloads/solomon-ochepa/claude-auto-switch/total?label=Downloads&logo=github)](https://github.com/solomon-ochepa/claude-auto-switch/releases)
 [![License](https://img.shields.io/badge/License-MIT-green)](https://github.com/solomon-ochepa/claude-auto-switch/blob/main/LICENSE)
 
+**by [Solomon Ochepa](https://github.com/solomon-ochepa)**
+
 ![Claude Auto Switch animation](media/claude-auto-switch-animation.gif)
 
-**Run several Claude subscriptions in Claude Code and stop thinking about which one is active.**
+**Auto switch your Claude accounts, and stop thinking about which one is active.**
 The extension watches every account's limits and moves Claude Code to the next account by itself —
 starting with the one whose weekly limit resets soonest, because capacity you don't spend before a
 reset is gone. Switching by hand, live limits for every account, usage analytics and an
