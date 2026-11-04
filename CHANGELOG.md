@@ -7,6 +7,10 @@
   - The account whose weekly (7-day) limit resets soonest goes first, so capacity is used before
     it is lost. `autoSwitch.order` also offers the soonest reset of any limit, the capacity that
     would be lost soonest, the most usage left, and the panel's own order.
+  - `autoSwitch.when` decides when it acts: `always` (the default) keeps the first account of that
+    order active, `exhausted` waits until the active account runs out of a limit.
+  - Every decision is written to the **Claude Auto-switch** output channel
+    (`Claude: Show the auto-switch log`).
   - Availability is confirmed with a fresh usage check right before the switch;
     `autoSwitch.minAvailablePercent` sets how much of every limit an account must still have.
   - An account that is used up, needs reauthorization, is in use in another window, or whose
@@ -18,6 +22,9 @@
   - The accounts panel sorts by the same order, next account first (`autoSwitch.sortList`), and
     **Next account first (auto-switch order)** is a sort of its own.
   - `Claude: Switch to the next account now (auto-switch)` runs one round on demand.
+
+- Settings are grouped into **Accounts and limits**, **Switching**, **Auto-switch**, **Usage
+  history**, and **Claude Code** sections in the Settings editor.
 
 ## 0.3.1
 

@@ -523,7 +523,11 @@ export function activate(context: vscode.ExtensionContext): void {
     store,
     sync,
     getInterval,
-    refreshUI,
+    () => {
+      refreshUI();
+      // One check per poll round: the readings it needs are all in by now.
+      void runAutoSwitch();
+    },
     (id, previous, next) => {
       limitNotifier.onSnapshot(id, previous, next);
       // The active account just ran out of a limit: propose the next account right away.
@@ -553,6 +557,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // --- Auto-switching ---
 
+  const autoSwitchLog = vscode.window.createOutputChannel("Claude Auto-switch");
+  context.subscriptions.push(autoSwitchLog);
+
   const autoSwitch = new AutoSwitchController(
     store,
     (id) => switchService.switchTo(id),
@@ -561,7 +568,8 @@ export function activate(context: vscode.ExtensionContext): void {
     },
     readAutoSwitchSettings,
     // A skipped account is reconsidered on the next check, so a skip lasts one interval.
-    () => Math.max(MIN_POLL_INTERVAL_SECONDS, config().get<number>("pollIntervalSeconds", 240)) * 1000
+    () => Math.max(MIN_POLL_INTERVAL_SECONDS, config().get<number>("pollIntervalSeconds", 240)) * 1000,
+    (line) => autoSwitchLog.appendLine(`[${new Date().toLocaleTimeString()}] ${line}`)
   );
   viewProvider.setAutoSwitchState(readAutoSwitchSettings(), (id) => autoSwitch.skipReason(id));
 
@@ -747,6 +755,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("accountManagerForClaude.refreshAll", refreshAll)
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("accountManagerForClaude.showAutoSwitchLog", () =>
+      autoSwitchLog.show(true)
+    )
   );
 
   context.subscriptions.push(

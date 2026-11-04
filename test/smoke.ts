@@ -1588,11 +1588,28 @@ function runAutoSwitchTests(): void {
     plan.reason === "Its weekly limit resets in 1 d 6 h, the soonest of the available accounts, and 65% of its limits is left."
   );
 
-  const staying = planAutoSwitch(
-    [acc("ok", [w("session", 10, 3 * h)], { isActive: true }), accounts[1]],
-    { now }
+  const fine = acc("ok", [w("session", 10, 3 * h), w("weekly_all", 10, 200 * h)], { isActive: true });
+  const staying = planAutoSwitch([fine, accounts[1]], { now, when: "exhausted" });
+  check("with `exhausted`, nothing happens while the active account can still be used", staying.action === "stay");
+
+  // The default keeps the account the order puts first active, so the capacity that
+  // resets soonest is the one being spent.
+  const takeover = planAutoSwitch([fine, accounts[1]], { now });
+  check(
+    "by default a nearer reset takes over even though the active account has room",
+    takeover.action === "switch" && takeover.target?.id === "late"
   );
-  check("nothing happens while the active account can still be used", staying.action === "stay");
+  check(
+    "the active account keeps the session while it is the first of the order",
+    planAutoSwitch([acc("first", [w("weekly_all", 10, 5 * h)], { isActive: true }), accounts[1]], { now }).action ===
+      "stay"
+  );
+  check(
+    "an active account that opted out is replaced, not kept",
+    planAutoSwitch([acc("out", [w("weekly_all", 10, 1 * h)], { isActive: true, autoSwitch: false }), accounts[1]], {
+      now,
+    }).target?.id === "late"
+  );
 
   const waiting = planAutoSwitch([accounts[0], accounts[4]], { now });
   check(

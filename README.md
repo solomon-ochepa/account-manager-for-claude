@@ -87,9 +87,13 @@ much of every account's limits is left, and let the extension tell you which acc
 
 ### Auto-switch
 
-The extension changes accounts by itself when the active one runs out of a limit. It is on by
-default; `autoSwitch.enabled` turns it off.
+The extension chooses which account Claude Code uses. It is on by default; `autoSwitch.enabled`
+turns it off.
 
+- **The account the order puts first is kept active**, so the capacity that resets soonest is the
+  one being spent — it switches as soon as another account takes that place, not only when the
+  active account runs out. `autoSwitch.when` = `exhausted` makes it a pure failover instead: the
+  active account keeps the session until one of its limits runs out.
 - **The nearest reset goes first.** Capacity that is not used before a limit resets is lost, so
   the account whose weekly (7-day) limit resets soonest is taken first. `autoSwitch.order` chooses
   another rule: the soonest reset of any limit, the capacity that would be lost soonest, the most
@@ -107,7 +111,8 @@ default; `autoSwitch.enabled` turns it off.
 - **The list follows the same order**, so the account that is used next is at the top. Choosing a
   sort in the panel overrides it, and `autoSwitch.sortList` turns it off.
 - `Claude: Switch to the next account now (auto-switch)` runs one round on demand, even while
-  auto-switching is off.
+  auto-switching is off. Every decision — the account taken, the one kept, or why none could be —
+  is written to the **Claude Auto-switch** output channel (`Claude: Show the auto-switch log`).
 
 Switching replaces Claude Code's login, so the window still has to be reloaded afterwards —
 `autoReloadAfterSwitch` does that without asking.
@@ -182,6 +187,7 @@ account can be used, across a week or hour by hour for a single day.
 | `Claude: Undo last switch` | Restore the previous account |
 | `Claude: Switch to the next account now (auto-switch)` | Run one auto-switch round now |
 | `Claude: Include or exclude an account in auto-switching` | Opt an account in or out |
+| `Claude: Show the auto-switch log` | Open the log of auto-switch decisions |
 | `Claude: Rename account profile` / `Remove account profile` | Manage saved accounts |
 | `Claude: Back up account list (password-protected ZIP)` | Save all accounts to an encrypted ZIP |
 | `Claude: Restore account list from backup` | Merge a backup into the list |
@@ -190,7 +196,10 @@ account can be used, across a week or hour by hour for a single day.
 
 ## Settings
 
-All settings start with `accountManagerForClaude.`.
+All settings start with `accountManagerForClaude.`, and the Settings editor groups them under
+**Accounts and limits**, **Switching**, **Auto-switch**, **Usage history**, and **Claude Code**.
+
+### Accounts and limits
 
 | Setting | Default | Description |
 | --- | --- | --- |
@@ -198,18 +207,42 @@ All settings start with `accountManagerForClaude.`.
 | `pollIntervalSeconds` | `240` | Seconds between checks (minimum 60; short intervals with many accounts can hit rate limits) |
 | `requestDelaySeconds` | `2` | Pause between requests to Anthropic; accounts are checked one at a time, never in parallel |
 | `notifyOnLimitReset` | `true` | Notify when a used-up limit is available again |
+| `warnThresholdPercent` | `80` | Usage bars and the status bar turn red from this percent, and orange from 75% of it |
+
+### Switching
+
+| Setting | Default | Description |
+| --- | --- | --- |
 | `autoReloadAfterSwitch` | `false` | Reload the window automatically after switching |
-| `autoSwitch.enabled` | `true` | Switch to the next account on its own when the active one runs out |
-| `autoSwitch.order` | `weeklyReset` | Which account is taken first: `weeklyReset`, `anyReset`, `urgency`, `remaining`, or `listOrder` |
+
+### Auto-switch
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| `autoSwitch.enabled` | `true` | Change accounts on its own |
+| `autoSwitch.when` | `always` | `always` keeps the first account of the order active; `exhausted` only switches once the active account runs out |
+| `autoSwitch.order` | `weeklyReset` | Which account comes first: `weeklyReset`, `anyReset`, `urgency`, `remaining`, or `listOrder` |
 | `autoSwitch.minAvailablePercent` | `1` | How much (%) of every limit an account must have left to be switched to |
 | `autoSwitch.notify` | `true` | Notify which account auto-switching moved to, and why |
 | `autoSwitch.sortList` | `true` | Sort the panel by the auto-switch order, next account first |
-| `warnThresholdPercent` | `80` | Usage bars and the status bar turn red from this percent, and orange from 75% of it |
+
+### Usage history
+
+| Setting | Default | Description |
+| --- | --- | --- |
 | `usageHistory.enabled` | `false` | Collect usage history for analytics and the calendar |
 | `usageHistory.intervalSeconds` | `60` | Seconds between usage readings (minimum 60) |
 | `usageHistory.retentionDays` | `90` | Days of usage history to keep |
+
+### Claude Code
+
+| Setting | Default | Description |
+| --- | --- | --- |
 | `credentialsPath` | `""` | Custom path to `.credentials.json` (empty means `~/.claude/.credentials.json`). On macOS its folder selects Claude Code's Keychain item |
 | `claudeCommand` | `claude` | The Claude Code CLI command; use the full path if VS Code can't find it |
+| `sayHiModel` | `haiku` | Model used for Say Hi warmups |
+| `sayHiPrompt` | `Hi` | Prompt used for Say Hi warmups |
+| `sayHiTimeoutSeconds` | `120` | How long a Say Hi warmup may take |
 
 ## How it works
 

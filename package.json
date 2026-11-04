@@ -136,6 +136,10 @@
         "title": "Claude: Include or exclude an account in auto-switching"
       },
       {
+        "command": "accountManagerForClaude.showAutoSwitchLog",
+        "title": "Claude: Show the auto-switch log"
+      },
+      {
         "command": "accountManagerForClaude.openPanel",
         "title": "Claude: Show accounts panel"
       },
@@ -249,130 +253,170 @@
         }
       ]
     },
-    "configuration": {
-      "title": "Account Manager for Claude",
-      "properties": {
-        "accountManagerForClaude.autoRefresh": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Regularly check the usage limits of all saved accounts (every `#accountManagerForClaude.pollIntervalSeconds#` seconds). When disabled, usage is only checked at startup, on manual refresh, and when a used-up limit is due to reset."
-        },
-        "accountManagerForClaude.pollIntervalSeconds": {
-          "type": "number",
-          "default": 240,
-          "minimum": 60,
-          "markdownDescription": "How often (in seconds, minimum 60 = 1 minute) to check usage limits for each account when `#accountManagerForClaude.autoRefresh#` is on. The usage endpoint is rate-limited: short intervals with many accounts can hit HTTP 429, after which that account is paused for 5 minutes."
-        },
-        "accountManagerForClaude.requestDelaySeconds": {
-          "type": "number",
-          "default": 2,
-          "minimum": 0,
-          "maximum": 60,
-          "markdownDescription": "Pause (in seconds) between requests to Anthropic. Accounts are checked one at a time, never in parallel, with this pause in between, so checking many accounts does not hit the rate limit (HTTP 429). Raise it if you still see 429 errors."
-        },
-        "accountManagerForClaude.notifyOnLimitReset": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Show a notification when a used-up limit (session, weekly, or a model-specific weekly limit) of a saved account becomes available again."
-        },
-        "accountManagerForClaude.autoReloadAfterSwitch": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Automatically reload the VS Code window after switching accounts (required for Claude Code to pick up the new account). When disabled, the extension asks first."
-        },
-        "accountManagerForClaude.autoSwitch.enabled": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Switch to the next account on its own as soon as the active account runs out of a limit (and when a better account becomes available). The next account is chosen by `#accountManagerForClaude.autoSwitch.order#`; every saved account takes part unless it is excluded from the panel's **⋯** menu."
-        },
-        "accountManagerForClaude.autoSwitch.order": {
-          "type": "string",
-          "default": "weeklyReset",
-          "enum": [
-            "weeklyReset",
-            "anyReset",
-            "urgency",
-            "remaining",
-            "listOrder"
-          ],
-          "enumDescriptions": [
-            "The account whose weekly (7-day) limit resets soonest goes first, so its capacity is used before it is lost.",
-            "The account whose next limit of any kind resets soonest goes first.",
-            "The account that would lose the most capacity per hour goes first.",
-            "The account with the most usage left goes first.",
-            "The first available account in the panel's order goes first."
-          ],
-          "markdownDescription": "The order in which available accounts are taken by auto-switching."
-        },
-        "accountManagerForClaude.autoSwitch.minAvailablePercent": {
-          "type": "number",
-          "default": 1,
-          "minimum": 0,
-          "maximum": 100,
-          "markdownDescription": "An account is only switched to when at least this much (%) of every one of its limits is left."
-        },
-        "accountManagerForClaude.autoSwitch.notify": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Show a notification naming the account auto-switching moved to, and why."
-        },
-        "accountManagerForClaude.autoSwitch.sortList": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Sort the accounts panel by `#accountManagerForClaude.autoSwitch.order#`, so the account that is used next is at the top. Choosing a sort in the panel overrides this."
-        },
-        "accountManagerForClaude.credentialsPath": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Path to the Claude Code `.credentials.json` file. Empty = default `~/.claude/.credentials.json`. On macOS, Claude Code keeps the login in the Keychain instead; this path's folder selects which Keychain item is used."
-        },
-        "accountManagerForClaude.warnThresholdPercent": {
-          "type": "number",
-          "default": 80,
-          "minimum": 1,
-          "maximum": 100,
-          "markdownDescription": "Usage threshold (%) from which limit bars and the status bar turn red. They turn orange from 75% of it (60% by default)."
-        },
-        "accountManagerForClaude.claudeCommand": {
-          "type": "string",
-          "default": "claude",
-          "markdownDescription": "Claude Code CLI command used for login and Say Hi warmups. Use the full path to `claude.cmd`/`claude.exe` if VS Code cannot find `claude` in PATH."
-        },
-        "accountManagerForClaude.sayHiModel": {
-          "type": "string",
-          "default": "haiku",
-          "markdownDescription": "Model passed to `claude -p` for Say Hi warmups. `haiku` is the low-cost/default warmup choice."
-        },
-        "accountManagerForClaude.sayHiPrompt": {
-          "type": "string",
-          "default": "Hi",
-          "markdownDescription": "Prompt used by Say Hi warmups."
-        },
-        "accountManagerForClaude.sayHiTimeoutSeconds": {
-          "type": "number",
-          "default": 120,
-          "minimum": 15,
-          "markdownDescription": "Maximum time to wait for a Say Hi warmup command."
-        },
-        "accountManagerForClaude.usageHistory.enabled": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Collect a usage reading of every saved account every `#accountManagerForClaude.usageHistory.intervalSeconds#` seconds and keep it on this computer, for the usage analytics charts and the availability calendar. Readings that repeat the previous values are not stored again (except every 15 minutes)."
-        },
-        "accountManagerForClaude.usageHistory.intervalSeconds": {
-          "type": "number",
-          "default": 60,
-          "minimum": 60,
-          "markdownDescription": "How often (in seconds, minimum 60) usage is read while `#accountManagerForClaude.usageHistory.enabled#` is on. Short periods with many accounts can hit the usage endpoint's rate limit (HTTP 429), which pauses that account for 5 minutes."
-        },
-        "accountManagerForClaude.usageHistory.retentionDays": {
-          "type": "number",
-          "default": 90,
-          "minimum": 1,
-          "markdownDescription": "How many days of collected usage history to keep."
+    "configuration": [
+      {
+        "title": "Accounts and limits",
+        "order": 1,
+        "properties": {
+          "accountManagerForClaude.autoRefresh": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Regularly check the usage limits of all saved accounts (every `#accountManagerForClaude.pollIntervalSeconds#` seconds). When disabled, usage is only checked at startup, on manual refresh, and when a used-up limit is due to reset."
+          },
+          "accountManagerForClaude.pollIntervalSeconds": {
+            "type": "number",
+            "default": 240,
+            "minimum": 60,
+            "markdownDescription": "How often (in seconds, minimum 60 = 1 minute) to check usage limits for each account when `#accountManagerForClaude.autoRefresh#` is on. The usage endpoint is rate-limited: short intervals with many accounts can hit HTTP 429, after which that account is paused for 5 minutes."
+          },
+          "accountManagerForClaude.requestDelaySeconds": {
+            "type": "number",
+            "default": 2,
+            "minimum": 0,
+            "maximum": 60,
+            "markdownDescription": "Pause (in seconds) between requests to Anthropic. Accounts are checked one at a time, never in parallel, with this pause in between, so checking many accounts does not hit the rate limit (HTTP 429). Raise it if you still see 429 errors."
+          },
+          "accountManagerForClaude.notifyOnLimitReset": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Show a notification when a used-up limit (session, weekly, or a model-specific weekly limit) of a saved account becomes available again."
+          },
+          "accountManagerForClaude.warnThresholdPercent": {
+            "type": "number",
+            "default": 80,
+            "minimum": 1,
+            "maximum": 100,
+            "markdownDescription": "Usage threshold (%) from which limit bars and the status bar turn red. They turn orange from 75% of it (60% by default)."
+          }
+        }
+      },
+      {
+        "title": "Switching",
+        "order": 2,
+        "properties": {
+          "accountManagerForClaude.autoReloadAfterSwitch": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "Automatically reload the VS Code window after switching accounts (required for Claude Code to pick up the new account). When disabled, the extension asks first."
+          }
+        }
+      },
+      {
+        "title": "Auto-switch",
+        "order": 3,
+        "properties": {
+          "accountManagerForClaude.autoSwitch.enabled": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Switch to the next account on its own as soon as the active account runs out of a limit (and when a better account becomes available). The next account is chosen by `#accountManagerForClaude.autoSwitch.order#`; every saved account takes part unless it is excluded from the panel's **\u22ef** menu."
+          },
+          "accountManagerForClaude.autoSwitch.when": {
+            "type": "string",
+            "default": "always",
+            "enum": [
+              "always",
+              "exhausted"
+            ],
+            "enumDescriptions": [
+              "Keep the account that `#accountManagerForClaude.autoSwitch.order#` puts first active, so the capacity that resets soonest is the one being spent. Switches as soon as another account takes that place.",
+              "Switch only when the active account runs out of a limit, and stay on it as long as it can be used."
+            ],
+            "markdownDescription": "When auto-switching moves to another account."
+          },
+          "accountManagerForClaude.autoSwitch.order": {
+            "type": "string",
+            "default": "weeklyReset",
+            "enum": [
+              "weeklyReset",
+              "anyReset",
+              "urgency",
+              "remaining",
+              "listOrder"
+            ],
+            "enumDescriptions": [
+              "The account whose weekly (7-day) limit resets soonest goes first, so its capacity is used before it is lost.",
+              "The account whose next limit of any kind resets soonest goes first.",
+              "The account that would lose the most capacity per hour goes first.",
+              "The account with the most usage left goes first.",
+              "The first available account in the panel's order goes first."
+            ],
+            "markdownDescription": "The order in which available accounts are taken by auto-switching."
+          },
+          "accountManagerForClaude.autoSwitch.minAvailablePercent": {
+            "type": "number",
+            "default": 1,
+            "minimum": 0,
+            "maximum": 100,
+            "markdownDescription": "An account is only switched to when at least this much (%) of every one of its limits is left."
+          },
+          "accountManagerForClaude.autoSwitch.notify": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Show a notification naming the account auto-switching moved to, and why."
+          },
+          "accountManagerForClaude.autoSwitch.sortList": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Sort the accounts panel by `#accountManagerForClaude.autoSwitch.order#`, so the account that is used next is at the top. Choosing a sort in the panel overrides this."
+          }
+        }
+      },
+      {
+        "title": "Usage history",
+        "order": 4,
+        "properties": {
+          "accountManagerForClaude.usageHistory.enabled": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "Collect a usage reading of every saved account every `#accountManagerForClaude.usageHistory.intervalSeconds#` seconds and keep it on this computer, for the usage analytics charts and the availability calendar. Readings that repeat the previous values are not stored again (except every 15 minutes)."
+          },
+          "accountManagerForClaude.usageHistory.intervalSeconds": {
+            "type": "number",
+            "default": 60,
+            "minimum": 60,
+            "markdownDescription": "How often (in seconds, minimum 60) usage is read while `#accountManagerForClaude.usageHistory.enabled#` is on. Short periods with many accounts can hit the usage endpoint's rate limit (HTTP 429), which pauses that account for 5 minutes."
+          },
+          "accountManagerForClaude.usageHistory.retentionDays": {
+            "type": "number",
+            "default": 90,
+            "minimum": 1,
+            "markdownDescription": "How many days of collected usage history to keep."
+          }
+        }
+      },
+      {
+        "title": "Claude Code",
+        "order": 5,
+        "properties": {
+          "accountManagerForClaude.credentialsPath": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "Path to the Claude Code `.credentials.json` file. Empty = default `~/.claude/.credentials.json`. On macOS, Claude Code keeps the login in the Keychain instead; this path's folder selects which Keychain item is used."
+          },
+          "accountManagerForClaude.claudeCommand": {
+            "type": "string",
+            "default": "claude",
+            "markdownDescription": "Claude Code CLI command used for login and Say Hi warmups. Use the full path to `claude.cmd`/`claude.exe` if VS Code cannot find `claude` in PATH."
+          },
+          "accountManagerForClaude.sayHiModel": {
+            "type": "string",
+            "default": "haiku",
+            "markdownDescription": "Model passed to `claude -p` for Say Hi warmups. `haiku` is the low-cost/default warmup choice."
+          },
+          "accountManagerForClaude.sayHiPrompt": {
+            "type": "string",
+            "default": "Hi",
+            "markdownDescription": "Prompt used by Say Hi warmups."
+          },
+          "accountManagerForClaude.sayHiTimeoutSeconds": {
+            "type": "number",
+            "default": 120,
+            "minimum": 15,
+            "markdownDescription": "Maximum time to wait for a Say Hi warmup command."
+          }
         }
       }
-    }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

@@ -29,13 +29,30 @@ export interface AutoSwitchAccount extends ProposeAccount {
   autoSwitch?: boolean;
 }
 
+/**
+ * When a switch happens: `always` keeps the account the order puts first active, so the
+ * capacity that resets soonest is the one being spent; `exhausted` waits until the active
+ * account runs out of a limit.
+ */
+export type AutoSwitchWhen = "always" | "exhausted";
+
+export const AUTO_SWITCH_WHEN: { key: AutoSwitchWhen; label: string }[] = [
+  { key: "always", label: "Keep the first account of the order active" },
+  { key: "exhausted", label: "Only when the active account runs out of a limit" },
+];
+
+export const DEFAULT_AUTO_SWITCH_WHEN: AutoSwitchWhen = "always";
+
 export interface AutoSwitchOptions {
   order?: AutoSwitchOrder;
+  when?: AutoSwitchWhen;
   now?: number;
   /** An account is only taken when at least this much of every limit is left. */
   minAvailablePercent?: number;
   /** Accounts passed over in an earlier round, by id: they go last until their skip expires. */
   skipped?: ReadonlyMap<string, AutoSwitchSkip>;
+  /** Rank the active account along with the others (to see whether it is still the best one). */
+  includeActive?: boolean;
 }
 
 /** A candidate that was passed over, kept until `until` so the next check reconsiders it. */
@@ -116,8 +133,9 @@ export function availableNow(acc: ProposeAccount, minAvailablePercent = 0): bool
 }
 
 /** Whether auto-switching may take this account at all (opted in, available, not the active one). */
-export function eligible(acc: AutoSwitchAccount, minAvailablePercent = 0): boolean {
-  return !acc.isActive && takesPartInAutoSwitch(acc) && availableNow(acc, minAvailablePercent);
+export function eligible(acc: AutoSwitchAccount, minAvailablePercent = 0, includeActive = false): boolean {
+  if (acc.isActive && !includeActive) return false;
+  return takesPartInAutoSwitch(acc) && availableNow(acc, minAvailablePercent);
 }
 
 /**
@@ -162,7 +180,7 @@ export function rankForAutoSwitch(
   // The list order is a choice of its own, so it takes no usage tie-break.
   const tieBreak = order === "listOrder" ? () => 0 : (a: AutoSwitchAccount, b: AutoSwitchAccount) => headroomOf(b) - headroomOf(a);
   return accounts
-    .filter((a) => eligible(a, options.minAvailablePercent ?? 0))
+    .filter((a) => eligible(a, options.minAvailablePercent ?? 0, options.includeActive))
     .sort(
       (a, b) =>
         skipRank(a) - skipRank(b) ||
@@ -189,6 +207,10 @@ export function reasonFor(acc: AutoSwitchAccount, order: AutoSwitchOrder, now: n
   }
   const sentence = `${name} resets in ${fmtWait(Math.max(0, reset - now))}, the soonest of the available accounts, and ${left}% of its limits is left.`;
   return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
+function lower(sentence: string): string {
+  return sentence.charAt(0).toLowerCase() + sentence.slice(1);
 }
 
 /** When the account is usable again, from its latest reading; null when unknown. */
@@ -240,15 +262,35 @@ export function planAutoSwitch(
   const now = options.now ?? Date.now();
   const order = options.order ?? DEFAULT_AUTO_SWITCH_ORDER;
   const min = options.minAvailablePercent ?? 0;
+  const when = options.when ?? DEFAULT_AUTO_SWITCH_WHEN;
   const active = accounts.find((a) => a.isActive);
-  if (active && availableNow(active, min)) {
-    return { action: "stay", ranked: [], reason: `"${active.label}" can still be used.` };
+  const activeUsable = Boolean(active && takesPartInAutoSwitch(active) && availableNow(active, min));
+
+  // Failover only: the active account keeps the session until one of its limits runs out.
+  if (when === "exhausted" && activeUsable) {
+    return { action: "stay", ranked: [], reason: `"${active!.label}" can still be used.` };
   }
-  const ranked = rankForAutoSwitch(accounts, { ...options, now, order, minAvailablePercent: min });
+
+  // Otherwise the order decides who should be active: an account that is still usable
+  // holds the session only while the order puts it first.
+  const ranked = rankForAutoSwitch(accounts, {
+    ...options,
+    now,
+    order,
+    minAvailablePercent: min,
+    includeActive: activeUsable,
+  });
   if (ranked.length === 0) {
     return waitPlan(accounts, now);
   }
-  return { action: "switch", target: ranked[0], ranked, reason: reasonFor(ranked[0], order, now) };
+  if (ranked[0].isActive) {
+    return {
+      action: "stay",
+      ranked,
+      reason: `"${ranked[0].label}" is the account to use now: ${lower(reasonFor(ranked[0], order, now))}`,
+    };
+  }
+  return { action: "switch", target: ranked[0], ranked: ranked.filter((a) => !a.isActive), reason: reasonFor(ranked[0], order, now) };
 }
 
 /**
