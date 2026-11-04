@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.4.2
+
+- The description leads with what it does: "Auto switch Claude Code between your Claude accounts
+  by the limit that resets soonest, with live usage limits."
+- The extension's page was rewritten around the automation: what it does, how it picks, and a
+  table of the per-account controls, with switching by hand after it. Fixed the install command,
+  which still named the old `.vsix`, and the output channel's name in the docs.
+
 ## 2.4.1
 
 - The description under the name says what the extension does now: "Switches Claude Code between

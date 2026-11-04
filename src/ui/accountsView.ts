@@ -433,8 +433,8 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
       <img class="about-logo" src="${iconUri}" alt="" />
       <h2 id="aboutTitle">Claude Auto Switch</h2>
       <p class="about-version">Version <span id="aboutVersion"></span></p>
-      <p class="about-desc">Switches Claude Code between your Claude accounts on its own, by the limit
-        that resets soonest.</p>
+      <p class="about-desc">Auto switch Claude Code between your Claude accounts by the limit that
+        resets soonest.</p>
       <dl class="about-meta">
         <dt>Author</dt>
         <dd><a href="#" data-link="https://github.com/solomon-ochepa">Solomon Ochepa</a></dd>
