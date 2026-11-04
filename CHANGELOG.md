@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.2
+
+- The hand-over limit on a card is a shield badge with the percent (`80%`) instead of the words
+  "Out at 80%".
+
 ## 2.3.1
 
 - **Keep active** moved out of the **⋯** menu: it is now a star button beside **Switch** on every
