@@ -55,6 +55,8 @@ export interface AccountProfile {
   autoSwitch?: boolean;
   /** true = kept in use: auto-switching holds this account until the mark is taken off. */
   keepActive?: boolean;
+  /** Percent (1-100) at which auto-switching hands this account over; unset = only when used up. */
+  switchOutPercent?: number;
   /** last read usage snapshot (cached for fast rendering) */
   lastUsage?: UsageSnapshot;
 }

@@ -775,6 +775,45 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("claudeAutoSwitch.setSwitchOutLimit", async (id?: string) => {
+      const targetId = id ?? (await pickAccount(store, "Set an account's hand-over limit…"));
+      const profile = targetId ? store.get(targetId) : undefined;
+      if (!targetId || !profile) {
+        return;
+      }
+      const answer = await vscode.window.showInputBox({
+        title: `Hand-over limit for "${profile.label}"`,
+        prompt:
+          "Percent at which auto-switching takes the next account, without waiting for the limit to be used up. Empty = only when a limit is used up.",
+        value: profile.switchOutPercent ? String(profile.switchOutPercent) : "",
+        placeHolder: "e.g. 80",
+        validateInput: (text) => {
+          const trimmed = text.trim();
+          if (!trimmed) {
+            return undefined;
+          }
+          const value = Number(trimmed);
+          return Number.isInteger(value) && value > 0 && value <= 100
+            ? undefined
+            : "Enter a whole number between 1 and 100, or leave it empty.";
+        },
+      });
+      if (answer === undefined) {
+        return;
+      }
+      const percent = answer.trim() ? Number(answer.trim()) : undefined;
+      await store.setSwitchOutPercent(targetId, percent);
+      refreshUI();
+      vscode.window.showInformationMessage(
+        percent === undefined
+          ? `"${profile.label}" is used until one of its limits is used up.`
+          : `"${profile.label}" is handed over once one of its limits reaches ${percent}%.`
+      );
+      await runAutoSwitch();
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand("claudeAutoSwitch.toggleKeepActive", async (id?: string) => {
       const targetId = id ?? (await pickAccount(store, "Keep an account active…"));
       const profile = targetId ? store.get(targetId) : undefined;

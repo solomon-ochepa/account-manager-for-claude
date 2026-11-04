@@ -139,6 +139,24 @@ export class AccountStore {
     }
   }
 
+  /**
+   * Sets the percent at which auto-switching hands this account over, or clears it
+   * (undefined, and any value outside 1-100).
+   */
+  async setSwitchOutPercent(id: string, percent: number | undefined): Promise<void> {
+    const profiles = this.profiles;
+    const p = profiles.find((x) => x.id === id);
+    if (!p) {
+      return;
+    }
+    const next =
+      typeof percent === "number" && percent > 0 && percent <= 100 ? Math.round(percent) : undefined;
+    if (p.switchOutPercent !== next) {
+      p.switchOutPercent = next;
+      await this.saveProfiles(profiles);
+    }
+  }
+
   /** The account marked to stay in use, if any. */
   keptActive(): AccountProfile | undefined {
     return this.profiles.find((p) => p.keepActive);

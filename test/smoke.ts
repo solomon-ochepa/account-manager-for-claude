@@ -35,6 +35,7 @@ import { noProposalReason, propose, rankAccounts, urgencyOf } from "../src/propo
 import {
   AutoSwitchAccount,
   AutoSwitchSkips,
+  switchOutPercentOf,
   weeklyHeadroomOf,
   availableNow,
   headroomOf,
@@ -508,6 +509,15 @@ async function runAccountStoreTests(): Promise<void> {
   );
   await keepStore.setKeepActive(second.id, false);
   check("the mark can be taken off", keepStore.keptActive() === undefined);
+
+  await keepStore.setSwitchOutPercent(first.id, 80);
+  check("an account keeps its own hand-over limit", keepStore.get(first.id)?.switchOutPercent === 80);
+  await keepStore.setSwitchOutPercent(first.id, 120);
+  check("a limit outside 1-100 clears it", keepStore.get(first.id)?.switchOutPercent === undefined);
+  await keepStore.setSwitchOutPercent(first.id, 75.4);
+  check("a fractional limit is rounded", keepStore.get(first.id)?.switchOutPercent === 75);
+  await keepStore.setSwitchOutPercent(first.id, undefined);
+  check("the limit can be cleared", keepStore.get(first.id)?.switchOutPercent === undefined);
 
   await store.updateUsage(profile.id, {
     fetchedAt: 333,
@@ -1682,6 +1692,40 @@ function runAutoSwitchTests(): void {
         { now }
       )
     ) === "soon,weekLater"
+  );
+
+  // An account's own hand-over limit: spent at that percent, without waiting for 100%.
+  const capped = (percent: number | undefined, extra: Partial<AutoSwitchAccount> = {}) =>
+    acc("capped", [w("session", 85, 4 * h), w("weekly_all", 60, 10 * h)], {
+      switchOutPercent: percent,
+      ...extra,
+    });
+  check("no limit set means it is used until a limit is used up", switchOutPercentOf(capped(undefined)) === 100);
+  check("a limit outside 1-100 is ignored", switchOutPercentOf(capped(0)) === 100 && switchOutPercentOf(capped(140)) === 100);
+  check("an account below its limit is still available", availableNow(capped(90)));
+  check("an account that reached its limit is not", !availableNow(capped(80)));
+  check(
+    "reaching the limit takes it out of the queue, used up or not",
+    ids(rankForAutoSwitch([capped(80), accounts[1]], { now })) === "late" &&
+      ids(rankForAutoSwitch([capped(90), accounts[1]], { now })) === "capped,late"
+  );
+  const handover = planAutoSwitch([capped(80, { isActive: true }), accounts[2], accounts[1]], { now });
+  check(
+    "the active account is handed over at its own limit, and the log says why",
+    handover.action === "switch" &&
+      handover.target?.id === "soon" &&
+      handover.reason.startsWith('"capped" reached its 80% hand-over limit. Its weekly limit resets in')
+  );
+  check(
+    "a kept account ignores its own hand-over limit",
+    planAutoSwitch([capped(80, { keepActive: true }), accounts[2]], { now }).target?.id === "capped"
+  );
+  check(
+    "a kept account is still stopped by a limit that is really used up",
+    planAutoSwitch(
+      [acc("kept", [w("session", 100, 45 * 60_000)], { keepActive: true, switchOutPercent: 50 }), accounts[2]],
+      { now }
+    ).action === "wait"
   );
 
   // An account marked to stay in use overrides the order until the mark comes off.

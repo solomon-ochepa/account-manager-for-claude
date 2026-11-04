@@ -13,6 +13,7 @@ import {
   DEFAULT_AUTO_SWITCH_WHEN,
   availableNow,
   planAutoSwitch,
+  switchOutPercentOf,
 } from "./autoSwitch";
 import { SwitchResult } from "./switchService";
 
@@ -115,6 +116,7 @@ export class AutoSwitchController {
         needsReauthorization: needsReauthorization(this.store, p, await this.store.getCreds(p.id)),
         autoSwitch: p.autoSwitch,
         keepActive: p.keepActive,
+        switchOutPercent: p.switchOutPercent,
         windows: p.lastUsage?.windows ?? [],
       }))
     );
@@ -152,9 +154,13 @@ export class AutoSwitchController {
     // usage check, and that the switch accepts, wins.
     let lastMessage = plan.reason;
     for (const candidate of plan.ranked) {
-      // A kept account was chosen by hand: only a used-up limit stops it, not the minimum.
-      const minimum = plan.held ? 0 : settings.minAvailablePercent;
-      const confirmed = await this.confirmAvailable(candidate.id, minimum);
+      // A kept account was chosen by hand: only a used-up limit stops it — not the
+      // minimum, and not the account's own hand-over limit.
+      const confirmed = await this.confirmAvailable(
+        candidate.id,
+        plan.held ? 0 : settings.minAvailablePercent,
+        plan.held
+      );
       if (!confirmed.ok) {
         this.skips.record(candidate.id, confirmed.message, Date.now(), this.cooldownMs());
         lastMessage = confirmed.message;
@@ -180,7 +186,8 @@ export class AutoSwitchController {
   /** Reads the account's usage once more and checks that it is still available. */
   private async confirmAvailable(
     id: string,
-    minAvailablePercent: number
+    minAvailablePercent: number,
+    ignoreSwitchOutLimit = false
   ): Promise<{ ok: boolean; message: string }> {
     await this.refreshUsage(id);
     const profile = this.store.get(id);
@@ -194,6 +201,7 @@ export class AutoSwitchController {
       needsReauthorization: needsReauthorization(this.store, profile, creds),
       autoSwitch: profile.autoSwitch,
       keepActive: profile.keepActive,
+      switchOutPercent: profile.switchOutPercent,
       windows: profile.lastUsage?.windows ?? [],
     };
     if (account.needsReauthorization) {
@@ -202,7 +210,8 @@ export class AutoSwitchController {
     if (profile.lastUsage?.error) {
       return { ok: false, message: `"${profile.label}": its usage could not be read.` };
     }
-    if (!availableNow(account, minAvailablePercent)) {
+    const cap = ignoreSwitchOutLimit ? 100 : undefined;
+    if (!availableNow(account, minAvailablePercent, cap ?? switchOutPercentOf(account))) {
       return { ok: false, message: `"${profile.label}" is not available any more.` };
     }
     return { ok: true, message: "" };
