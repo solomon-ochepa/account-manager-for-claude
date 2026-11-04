@@ -2,11 +2,11 @@
   "name": "account-manager-for-claude",
   "displayName": "Claude Account Manager",
   "description": "Seamlessly switch between Claude accounts and subscriptions in Claude Code, with real-time usage limit tracking.",
-  "version": "1.0.8",
-  "publisher": "tursoft",
+  "version": "2.0.0",
+  "publisher": "solomon-ochepa",
   "author": {
-    "name": "Muhammet Tursak",
-    "email": "tursoft@gmail.com"
+    "name": "Solomon Ochepa",
+    "url": "https://github.com/solomon-ochepa"
   },
   "license": "MIT",
   "engines": {
@@ -34,8 +34,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/tursoft/account-manager-for-claude"
+    "url": "https://github.com/solomon-ochepa/account-manager-for-claude"
   },
+  "bugs": {
+    "url": "https://github.com/solomon-ochepa/account-manager-for-claude/issues"
+  },
+  "homepage": "https://github.com/solomon-ochepa/account-manager-for-claude#readme",
   "main": "./dist/extension.js",
   "activationEvents": [
     "onStartupFinished"

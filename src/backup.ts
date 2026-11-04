@@ -16,6 +16,8 @@ import { AccountProfile, OAuthCreds } from "./types";
  * or similar tools given the password.
  */
 
+// The identifier in every backup file written so far; renaming it would make those
+// backups unreadable, so it stays as it is.
 const FORMAT = "tursoft-claude-switcher-backup";
 const FORMAT_VERSION = 1;
 const ENTRY_NAME = "accounts.json";

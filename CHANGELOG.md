@@ -1,7 +1,17 @@
 # Changelog
 
-## Unreleased
+## 2.0.0
 
+First release of this fork, maintained by [Solomon Ochepa](https://github.com/solomon-ochepa).
+It continues from the upstream `main` branch (1.0.8); the Marketplace builds 1.0.9–1.1.1 of
+[tursoft/account-manager-for-claude](https://github.com/tursoft/account-manager-for-claude) were
+never published to that branch and are therefore not included.
+
+- Published under the `solomon-ochepa` publisher, with the repository, issue tracker, and the
+  panel's About sheet pointing here. Releases are `.vsix` downloads from GitHub.
+- The sidebar ad banner and its assets were removed; the panel ends with its own content.
+- MIT, with the copyright of both earlier authors retained. Backups stay compatible: the backup
+  file format is unchanged.
 - **Auto-switch**: the extension switches to the next account by itself when the active one runs
   out of a limit. On by default; `autoSwitch.enabled` turns it off.
   - The account whose weekly (7-day) limit resets soonest goes first, so capacity is used before

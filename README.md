@@ -1,9 +1,8 @@
 # Account Manager for Claude
 
-[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Install-0e639c?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=tursoft.account-manager-for-claude)
-[![Downloads](https://vsmarketplacebadges.dev/downloads-short/tursoft.account-manager-for-claude.svg)](https://marketplace.visualstudio.com/items?itemName=tursoft.account-manager-for-claude)
-[![Open VSX](https://img.shields.io/open-vsx/v/tursoft/account-manager-for-claude?label=Open%20VSX&logo=eclipseide&color=a60ee5)](https://open-vsx.org/extension/tursoft/account-manager-for-claude)
-[![GitHub](https://img.shields.io/badge/GitHub-account--manager--for--claude-181717?logo=github)](https://github.com/tursoft/account-manager-for-claude)
+[![Release](https://img.shields.io/github/v/release/solomon-ochepa/account-manager-for-claude?label=Release&logo=github)](https://github.com/solomon-ochepa/account-manager-for-claude/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/solomon-ochepa/account-manager-for-claude/total?label=Downloads&logo=github)](https://github.com/solomon-ochepa/account-manager-for-claude/releases)
+[![License](https://img.shields.io/badge/License-MIT-green)](https://github.com/solomon-ochepa/account-manager-for-claude/blob/main/LICENSE)
 
 ![Account Manager for Claude animation](media/claude-account-manager-animation.gif)
 
@@ -37,10 +36,12 @@ much of every account's limits is left, and let the extension tell you which acc
 
 ## Install
 
-- **VS Code:** install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=tursoft.account-manager-for-claude),
-  or run `ext install tursoft.account-manager-for-claude` in Quick Open (`Ctrl+P`).
-- **VSCodium, Cursor, and other Open VSX editors:** install from
-  [open-vsx.org](https://open-vsx.org/extension/tursoft/account-manager-for-claude).
+- Download the latest `.vsix` from [Releases](https://github.com/solomon-ochepa/account-manager-for-claude/releases/latest).
+- **VS Code:** `code --install-extension account-manager-for-claude-<version>.vsix`, or
+  **Extensions: Install from VSIX…** in the command palette. Install it from inside the editor,
+  not by double-clicking the file in Explorer: that may open Visual Studio's installer, which
+  cannot install VS Code extensions.
+- **VSCodium, Cursor, and other editors** take the same `.vsix`.
 - **Requires** VS Code 1.85 or newer on Windows, macOS, or Linux.
 
 ## Getting started
@@ -319,12 +320,10 @@ Keychain could not be read or updated, unlock the login keychain (Keychain Acces
   your computer account.
 - Use it only with **your own** accounts. The usage endpoint and the token refresh are unofficial
   and may change on Anthropic's side at any time.
-- **Sidebar ad.** The panel shows a small ad for [BestJobFinder](https://bestjobfinder.net). It
-  loads nothing from the network; clicking it opens the site in your browser.
 
 ## Development
 
-Source: [github.com/tursoft/account-manager-for-claude](https://github.com/tursoft/account-manager-for-claude).
+Source: [github.com/solomon-ochepa/account-manager-for-claude](https://github.com/solomon-ochepa/account-manager-for-claude).
 Requires [Node.js](https://nodejs.org/) 18+ and VS Code 1.85+. Run `npm install` first.
 
 | Script | What it does |
@@ -347,30 +346,31 @@ Requires [Node.js](https://nodejs.org/) 18+ and VS Code 1.85+. Run `npm install`
 - **Install the `.vsix` from VS Code**, not by double-clicking it in Explorer: that may open
   Visual Studio's installer, which can't install VS Code extensions.
 
-### Publishing
+### Releasing
 
-1. Create a publisher at <https://marketplace.visualstudio.com/manage>. Its ID must match
-   `publisher` in `package.json`.
-2. In Azure DevOps (<https://dev.azure.com>), create a Personal Access Token with
-   **Organization: All accessible organizations** and the scope **Marketplace → Manage**.
-3. Run `npx vsce login <publisher-id>`, or set the token in the `VSCE_PAT` environment variable.
-   Never commit it.
-4. Update `CHANGELOG.md`, then run `npm run publish` or `npm run release`. Both stop if the type
-   check or tests fail.
+1. Update `CHANGELOG.md` and the version in `package.json`.
+2. `npm run prepublish:check` (type check + tests), then `npm run build:vsix`.
+3. Tag the commit (`v<version>`) and attach the `.vsix` to a GitHub release.
 
-To publish to [Open VSX](https://open-vsx.org/) as well, run `npx ovsx publish -p <token>`.
+Publishing to the VS Code Marketplace or [Open VSX](https://open-vsx.org/) additionally needs a
+publisher account and a token (`vsce publish`, `ovsx publish`); neither is set up for this fork
+yet, so releases are `.vsix` downloads.
 
 ## Credits
 
-Built on [KrzysztofZander/claude-account-switcher](https://github.com/KrzysztofZander/claude-account-switcher)
-by Krzysztof Zander, which provided the original account-switching core. This version adds a
-redesigned panel and UI/UX, usage analytics with capacity-utilization tracking, an availability
-calendar, account proposals, and much more.
+Maintained by [Solomon Ochepa](https://github.com/solomon-ochepa).
+
+Forked from [tursoft/account-manager-for-claude](https://github.com/tursoft/account-manager-for-claude)
+by Muhammet Tursak, which redesigned the panel and added usage analytics, the availability
+calendar, and account proposals. That in turn builds on
+[KrzysztofZander/claude-account-switcher](https://github.com/KrzysztofZander/claude-account-switcher)
+by Krzysztof Zander, the original account-switching core. Thanks to both for the work this
+builds on.
+
+This fork continues from the upstream `main` branch (1.0.8) and adds auto-switching. It is
+maintained independently and is not affiliated with the earlier maintainers.
 
 ## License
 
 MIT
 
----
-
-<p align="center"><a href="https://bestjobfinder.net/?utm_source=vscode-account-manager-for-claude&utm_medium=readme&utm_campaign=readme"><img src="docs/bjf-banner.png" width="600" alt="BestJobFinder: your AI copilot in job search. Try now."></a></p>

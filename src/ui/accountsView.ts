@@ -18,12 +18,11 @@ interface CurrentSessionView {
 
 /** Links the About sheet may open; anything else from the webview is ignored. */
 const ABOUT_LINKS = new Set([
-  "https://tursoft.net",
-  "mailto:tursoft@gmail.com",
+  "https://github.com/solomon-ochepa",
+  "https://github.com/solomon-ochepa/account-manager-for-claude",
+  "https://github.com/solomon-ochepa/account-manager-for-claude/issues",
   "https://github.com/tursoft/account-manager-for-claude",
   "https://github.com/KrzysztofZander/claude-account-switcher",
-  // The sidebar banner (see the bjf-* markup below).
-  "https://bestjobfinder.net/?utm_source=vscode-account-manager-for-claude&utm_medium=extension&utm_campaign=sidebar",
 ]);
 
 interface ViewWindow {
@@ -342,9 +341,6 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
     const iconUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, "media", "icon.png")
     );
-    const bjfLogoUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, "media", "bjf-logo.png")
-    );
     const csp = [
       "default-src 'none'",
       `img-src ${webview.cspSource}`,
@@ -413,21 +409,6 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
     </span>
   </div>
   <div id="proposal" class="proposal hidden" role="status" aria-live="polite"></div>
-  <div class="bjf-wrap">
-    <a class="bjf-banner" id="bjfBanner" href="https://bestjobfinder.net/?utm_source=vscode-account-manager-for-claude&amp;utm_medium=extension&amp;utm_campaign=sidebar" data-link="https://bestjobfinder.net/?utm_source=vscode-account-manager-for-claude&amp;utm_medium=extension&amp;utm_campaign=sidebar" title="Open bestjobfinder.net">
-      <span class="bjf-ad-label">AD</span>
-      <span class="bjf-row">
-        <img class="bjf-logo" src="${bjfLogoUri}" alt="" />
-        <span class="bjf-wordmark">BestJobFinder</span>
-        <span class="bjf-pipe" aria-hidden="true"></span>
-        <span class="bjf-slogan">Your <span class="ai">AI copilot</span> in Job search!</span>
-      </span>
-      <span class="bjf-cta">
-        Try Now
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-      </span>
-    </a>
-  </div>
   <div id="menu" class="hidden" role="menu"></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="about" class="hidden" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
@@ -439,18 +420,18 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
       <p class="about-desc">Quickly switch between Claude accounts in Claude Code, with live usage limits.</p>
       <dl class="about-meta">
         <dt>Author</dt>
-        <dd>Muhammet Turşak</dd>
-        <dt>Email</dt>
-        <dd><a href="#" data-link="mailto:tursoft@gmail.com">tursoft@gmail.com</a></dd>
-        <dt>Website</dt>
-        <dd><a href="#" data-link="https://tursoft.net">tursoft.net</a></dd>
+        <dd><a href="#" data-link="https://github.com/solomon-ochepa">Solomon Ochepa</a></dd>
         <dt>Source</dt>
-        <dd><a href="#" data-link="https://github.com/tursoft/account-manager-for-claude">tursoft/account-manager-for-claude</a></dd>
+        <dd><a href="#" data-link="https://github.com/solomon-ochepa/account-manager-for-claude">solomon-ochepa/account-manager-for-claude</a></dd>
+        <dt>Issues</dt>
+        <dd><a href="#" data-link="https://github.com/solomon-ochepa/account-manager-for-claude/issues">Report a problem</a></dd>
       </dl>
       <p class="about-fork">
         Forked from
+        <a href="#" data-link="https://github.com/tursoft/account-manager-for-claude">tursoft/account-manager-for-claude</a>
+        by Muhammet Tursak, itself a fork of
         <a href="#" data-link="https://github.com/KrzysztofZander/claude-account-switcher">KrzysztofZander/claude-account-switcher</a>
-        by Krzysztof Zander. Thanks for the original work!
+        by Krzysztof Zander. Thanks for the work this builds on!
       </p>
       <p class="about-license">MIT License</p>
     </div>
