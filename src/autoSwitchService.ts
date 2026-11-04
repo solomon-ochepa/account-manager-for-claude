@@ -26,6 +26,8 @@ export interface AutoSwitchSettings {
   notify: boolean;
   /** The account list follows the auto-switch order. */
   sortList: boolean;
+  /** How long an account switched to by hand is held; 0 = no hold. */
+  manualHoldMs: number;
 }
 
 export const DEFAULT_AUTO_SWITCH_SETTINGS: AutoSwitchSettings = {
@@ -35,6 +37,7 @@ export const DEFAULT_AUTO_SWITCH_SETTINGS: AutoSwitchSettings = {
   minAvailablePercent: 1,
   notify: true,
   sortList: true,
+  manualHoldMs: 60 * 60_000,
 };
 
 /** Reads the `claudeAutoSwitch.autoSwitch.*` settings, falling back to the defaults. */
@@ -52,6 +55,7 @@ export function readAutoSwitchSettings(): AutoSwitchSettings {
     ),
     notify: config.get<boolean>("autoSwitch.notify", DEFAULT_AUTO_SWITCH_SETTINGS.notify),
     sortList: config.get<boolean>("autoSwitch.sortList", DEFAULT_AUTO_SWITCH_SETTINGS.sortList),
+    manualHoldMs: Math.max(0, config.get<number>("manualSwitchHoldMinutes", 60)) * 60_000,
   };
 }
 
@@ -117,6 +121,7 @@ export class AutoSwitchController {
         autoSwitch: p.autoSwitch,
         keepActive: p.keepActive,
         switchOutPercent: p.switchOutPercent,
+        manualSwitchAt: p.manualSwitchAt,
         windows: p.lastUsage?.windows ?? [],
       }))
     );
@@ -139,6 +144,7 @@ export class AutoSwitchController {
     const plan = planAutoSwitch(await this.accounts(), {
       order: settings.order,
       when: settings.when,
+      manualHoldMs: settings.manualHoldMs,
       now,
       minAvailablePercent: settings.minAvailablePercent,
       skipped: this.skips.active(now),

@@ -71,11 +71,11 @@ export function identityLabel(identity: ClaudeAuthIdentity): string {
   );
 }
 
-export function normalizeEmail(value: string | undefined): string | undefined {
+function normalizeEmail(value: string | undefined): string | undefined {
   return normalizeIdentityValue(value)?.toLowerCase();
 }
 
-export function normalizeIdentityValue(value: string | undefined): string | undefined {
+function normalizeIdentityValue(value: string | undefined): string | undefined {
   const trimmed = typeof value === "string" ? value.trim() : undefined;
   return trimmed ? trimmed : undefined;
 }

@@ -384,7 +384,7 @@ export class CredentialsManager {
 }
 
 /** True when Claude Code uses `configDir` without being told to (no CLAUDE_CONFIG_DIR). */
-export function isDefaultConfigDir(configDir: string): boolean {
+function isDefaultConfigDir(configDir: string): boolean {
   return !process.env.CLAUDE_CONFIG_DIR?.trim() && sameDir(configDir, path.join(os.homedir(), ".claude"));
 }
 

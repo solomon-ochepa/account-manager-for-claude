@@ -4,12 +4,12 @@
  * resets is lost, so the account whose limit resets soonest goes first, and an account
  * is only taken when it is available right now.
  *
- * Plain functions over plain objects, like `propose`: the extension, the accounts panel,
- * and the tests share one order. `AutoSwitchController` applies it; nothing here talks
- * to VS Code or to Anthropic.
+ * Plain functions over plain objects: the extension, the accounts panel and the tests
+ * share one order. `AutoSwitchController` applies it; nothing here talks to VS Code or
+ * to Anthropic.
  */
 
-import { fmtWait, ProposeAccount, ProposeWindow, urgencyOf } from "./propose";
+import { fmtWait, LimitAccount, LimitWindow, urgencyOf } from "./limits";
 
 /** How the next account is chosen. `weeklyReset` is the default. */
 export type AutoSwitchOrder = "weeklyReset" | "anyReset" | "urgency" | "remaining" | "listOrder";
@@ -25,13 +25,15 @@ export const AUTO_SWITCH_ORDERS: { key: AutoSwitchOrder; label: string }[] = [
 export const DEFAULT_AUTO_SWITCH_ORDER: AutoSwitchOrder = "weeklyReset";
 
 /** Accounts take part in auto-switching unless `autoSwitch` is explicitly false. */
-export interface AutoSwitchAccount extends ProposeAccount {
+export interface AutoSwitchAccount extends LimitAccount {
   autoSwitch?: boolean;
   /**
    * Marked to stay the account in use: auto-switching holds it and moves nowhere else
    * until the mark is taken off. One account at a time.
    */
   keepActive?: boolean;
+  /** When the user switched to this account by hand (epoch ms), which holds it for a while. */
+  manualSwitchAt?: number;
   /**
    * The account's own hand-over limit: once any of its limits reaches this percent,
    * auto-switching treats it as spent and takes the next account in the queue. Unset
@@ -64,6 +66,8 @@ export interface AutoSwitchOptions {
   skipped?: ReadonlyMap<string, AutoSwitchSkip>;
   /** Rank the active account along with the others (to see whether it is still the best one). */
   includeActive?: boolean;
+  /** How long a switch made by hand holds the account; 0 = no hold. */
+  manualHoldMs?: number;
 }
 
 /** A candidate that was passed over, kept until `until` so the next check reconsiders it. */
@@ -99,8 +103,8 @@ export function switchOutPercentOf(acc: AutoSwitchAccount): number {
 }
 
 /** The most used limit of `acc`, or undefined when no usage is known. */
-export function busiestWindow(acc: AutoSwitchAccount): ProposeWindow | undefined {
-  return windowsOf(acc).reduce<ProposeWindow | undefined>(
+export function busiestWindow(acc: AutoSwitchAccount): LimitWindow | undefined {
+  return windowsOf(acc).reduce<LimitWindow | undefined>(
     (worst, w) => (worst === undefined || w.percent > worst.percent ? w : worst),
     undefined
   );
@@ -119,7 +123,7 @@ export function reachedOwnLimit(acc: AutoSwitchAccount): boolean {
 }
 
 /** The limits of `acc` that have reached its hand-over limit. */
-export function spentWindows(acc: AutoSwitchAccount, cap = switchOutPercentOf(acc)): ProposeWindow[] {
+function spentWindows(acc: AutoSwitchAccount, cap = switchOutPercentOf(acc)): LimitWindow[] {
   return windowsOf(acc).filter((w) => w.percent >= cap);
 }
 
@@ -128,17 +132,17 @@ export function takesPartInAutoSwitch(acc: AutoSwitchAccount): boolean {
   return acc.autoSwitch !== false;
 }
 
-function windowsOf(acc: ProposeAccount): ProposeWindow[] {
+function windowsOf(acc: LimitAccount): LimitWindow[] {
   return acc.windows || [];
 }
 
 /** Percent left on the most used limit; -1 when no usage is known. */
-export function headroomOf(acc: ProposeAccount): number {
+export function headroomOf(acc: LimitAccount): number {
   const windows = windowsOf(acc);
   return windows.length ? 100 - Math.max(...windows.map((w) => w.percent)) : -1;
 }
 
-function resetMs(w: ProposeWindow | undefined): number {
+function resetMs(w: LimitWindow | undefined): number {
   const t = w?.resetsAt ? Date.parse(w.resetsAt) : NaN;
   return Number.isFinite(t) ? t : Infinity;
 }
@@ -148,7 +152,7 @@ function resetMs(w: ProposeWindow | undefined): number {
  * weekly limit when the account reports no general one. Infinity when it has none. The 5h
  * window never counts, not even as a tie-break — a weekly date is what the order is about.
  */
-export function weeklyResetOf(acc: ProposeAccount): number {
+export function weeklyResetOf(acc: LimitAccount): number {
   const general = windowsOf(acc).find((w) => w.kind === "weekly_all");
   if (general) return resetMs(general);
   const weekly = weeklyWindowsOf(acc).map(resetMs);
@@ -156,7 +160,7 @@ export function weeklyResetOf(acc: ProposeAccount): number {
 }
 
 /** The account's weekly limits: the general one and any model-specific one (never the 5h window). */
-function weeklyWindowsOf(acc: ProposeAccount): ProposeWindow[] {
+function weeklyWindowsOf(acc: LimitAccount): LimitWindow[] {
   return windowsOf(acc).filter((w) => w.kind.startsWith("weekly"));
 }
 
@@ -165,19 +169,19 @@ function weeklyWindowsOf(acc: ProposeAccount): ProposeWindow[] {
  * window is left out on purpose: it refills several times a day, so it says nothing about
  * which account to spend this week.
  */
-export function weeklyHeadroomOf(acc: ProposeAccount): number {
+export function weeklyHeadroomOf(acc: LimitAccount): number {
   const weekly = weeklyWindowsOf(acc);
   return weekly.length ? 100 - Math.max(...weekly.map((w) => w.percent)) : -1;
 }
 
 /** The soonest reset of any limit; Infinity when no reset time is known. */
-export function nextResetOf(acc: ProposeAccount): number {
+function nextResetOf(acc: LimitAccount): number {
   const times = windowsOf(acc).map(resetMs);
   return times.length ? Math.min(...times) : Infinity;
 }
 
 /** The highest urgency over the account's limits: how much capacity it would lose per hour. */
-export function urgencyScoreOf(acc: ProposeAccount, now: number): number {
+function urgencyScoreOf(acc: LimitAccount, now: number): number {
   const scores = windowsOf(acc).map((w) => urgencyOf(w, w.kind, now));
   return scores.length ? Math.max(...scores) : 0;
 }
@@ -199,7 +203,7 @@ export function availableNow(
 }
 
 /** Whether auto-switching may take this account at all (opted in, available, not the active one). */
-export function eligible(acc: AutoSwitchAccount, minAvailablePercent = 0, includeActive = false): boolean {
+function eligible(acc: AutoSwitchAccount, minAvailablePercent = 0, includeActive = false): boolean {
   if (acc.isActive && !includeActive) return false;
   return takesPartInAutoSwitch(acc) && availableNow(acc, minAvailablePercent);
 }
@@ -212,8 +216,8 @@ export function eligible(acc: AutoSwitchAccount, minAvailablePercent = 0, includ
 export function compareByOrder(
   order: AutoSwitchOrder,
   now = Date.now()
-): (a: ProposeAccount, b: ProposeAccount) => number {
-  const cmp: Record<AutoSwitchOrder, (a: ProposeAccount, b: ProposeAccount) => number> = {
+): (a: LimitAccount, b: LimitAccount) => number {
+  const cmp: Record<AutoSwitchOrder, (a: LimitAccount, b: LimitAccount) => number> = {
     // Weekly dates only: accounts that reset on the same date are separated by how much of
     // the weekly limit is left, never by the 5h window.
     weeklyReset: (a, b) =>
@@ -258,7 +262,7 @@ export function rankForAutoSwitch(
 }
 
 /** One sentence saying why this account is next. */
-export function reasonFor(acc: AutoSwitchAccount, order: AutoSwitchOrder, now: number): string {
+function reasonFor(acc: AutoSwitchAccount, order: AutoSwitchOrder, now: number): string {
   const weekly = order !== "anyReset";
   const left = weekly ? weeklyHeadroomOf(acc) : headroomOf(acc);
   const reset = weekly ? weeklyResetOf(acc) : nextResetOf(acc);
@@ -366,6 +370,29 @@ export function planAutoSwitch(
   }
 
   const active = accounts.find((a) => a.isActive);
+
+  // A choice made by hand holds for a while, so the next round does not undo it. The
+  // account still hands over once it cannot be used.
+  const manualHoldMs = options.manualHoldMs ?? 0;
+  const manualHoldUntil = active?.manualSwitchAt ? active.manualSwitchAt + manualHoldMs : 0;
+  if (active && manualHoldMs > 0 && manualHoldUntil > now && availableNow(active, min)) {
+    return {
+      action: "stay",
+      ranked: [],
+      reason: `"${active.label}" was switched to by hand; holding it for another ${fmtWait(manualHoldUntil - now)}.`,
+    };
+  }
+
+  // Opting an account out means "do not pick me", not "take me away while I am working":
+  // it keeps the session until one of its limits (or its own hand-over limit) is reached.
+  if (active && !takesPartInAutoSwitch(active) && availableNow(active, min)) {
+    return {
+      action: "stay",
+      ranked: [],
+      reason: `"${active.label}" is excluded from auto-switching and can still be used.`,
+    };
+  }
+
   const activeUsable = Boolean(active && takesPartInAutoSwitch(active) && availableNow(active, min));
 
   // Failover only: the active account keeps the session until one of its limits runs out.

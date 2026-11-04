@@ -1,5 +1,5 @@
 import { AVATAR_COLORS, avatarDescription, avatarState, starburstGlyph } from "../src/avatar";
-import { limitName, noProposalReason, propose, rankAccounts } from "../src/propose";
+import { fmtWait } from "../src/limits";
 import { nameTone, nameToneDescription, resetTone, toneOfPercent } from "../src/tone";
 import {
   extraFilterLabels,
@@ -37,7 +37,6 @@ import {
     key: '<circle cx="5.5" cy="10.5" r="2.5"/><path d="M7.3 8.7 13 3M11 5l1.5 1.5"/>',
     edit: '<path d="M10.5 2.5 13.5 5.5 6 13H3v-3z"/>',
     trash: '<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/>',
-    plus: '<path d="M8 3v10M3 8h10"/>',
     personAdd: '<circle cx="6.5" cy="5.5" r="2.5"/><path d="M2 13.5c.5-2.5 2.3-3.5 4.5-3.5s4 1 4.5 3.5M12.5 5v4M10.5 7h4"/>',
     up: '<path d="M8 13V3M4 7l4-4 4 4"/>',
     down: '<path d="M8 3v10M4 9l4 4 4-4"/>',
@@ -49,8 +48,8 @@ import {
     check: '<path d="M3.5 8.5 6.5 11.5 12.5 4.5"/>',
     blank: '',
     info: '<circle cx="8" cy="8" r="6"/><path d="M8 7.3V11M8 4.9v.2"/>',
-    warning: '<path d="M8 2.3 14.2 13H1.8z"/><path d="M8 6.4v3.2M8 11.2v.2"/>',
     signIn: '<path d="M9.5 2.5h3v11h-3M2.5 8h7M7 5.5 9.5 8 7 10.5"/>',
+    clock: '<circle cx="8" cy="8" r="5.6"/><path d="M8 4.8V8l2.3 1.5"/>',
     shield: '<path d="M8 2.2l4.5 1.6v4c0 2.6-1.8 4.6-4.5 5.9-2.7-1.3-4.5-3.3-4.5-5.9v-4z"/>',
     star: '<path d="M8 2.6l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 11.3l-3.4 1.8.7-3.8L2.5 6.6l3.8-.5z"/>',
     starOn: '<path d="M8 2.6l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 11.3l-3.4 1.8.7-3.8L2.5 6.6l3.8-.5z" fill="currentColor"/>',
@@ -144,8 +143,6 @@ import {
     const msg = event.data;
     if (msg.type === "showAbout") {
       showAbout();
-    } else if (msg.type === "propose") {
-      showProposal(msg.kind, Boolean(msg.automatic));
     } else if (msg.type === "copied") {
       showToast(msg.ok ? `Copied “${msg.name}”` : "Could not copy to the clipboard");
     } else if (msg.type === "busy") {
@@ -320,6 +317,16 @@ import {
       plan.title = `Plan: ${acc.subscriptionType}`;
       head.appendChild(plan);
     }
+    if (acc.manualHoldUntil && acc.manualHoldUntil > Date.now()) {
+      const held = el("span", "badge muted icon-badge");
+      held.append(icon("clock"), el("span", "", fmtWait(acc.manualHoldUntil - Date.now())));
+      held.title = [
+        "Switched to by hand",
+        "Auto-switching leaves this account alone until the hold runs out.",
+        "The hold ends early if a limit runs out.",
+      ].join("\n");
+      head.appendChild(held);
+    }
     if (acc.switchOutPercent) {
       const out = el("span", "badge muted icon-badge");
       out.append(icon("shield"), el("span", "", acc.switchOutPercent + "%"));
@@ -417,15 +424,7 @@ import {
   /** Quick actions shown left of the card's "..." menu: switch (inactive accounts only) and refresh. */
   function quickButtons(acc) {
     const buttons = [];
-    if (acc.needsReauthorization) {
-      // Switching would fail with a dead login; offer the fix instead.
-      buttons.push(
-        iconButton("key", "Login expired: reauthorize this account", () => post("reauthorize", acc.id), "quick reauth")
-      );
-    } else if (!acc.isActive) {
-      buttons.push(iconButton("swap", "Switch to this account", () => post("switch", acc.id), "quick switch"));
-    }
-    // Beside Switch, because it is the other answer to "which account runs next".
+    // The two answers to "which account runs next" sit together: hold this one, or take it.
     const keep = iconButton(
       acc.keepActive ? "starOn" : "star",
       acc.keepActive
@@ -436,6 +435,14 @@ import {
     );
     keep.setAttribute("aria-pressed", String(Boolean(acc.keepActive)));
     buttons.push(keep);
+    if (acc.needsReauthorization) {
+      // Switching would fail with a dead login; offer the fix instead.
+      buttons.push(
+        iconButton("key", "Login expired: reauthorize this account", () => post("reauthorize", acc.id), "quick reauth")
+      );
+    } else if (!acc.isActive) {
+      buttons.push(iconButton("swap", "Switch to this account", () => post("switch", acc.id), "quick switch"));
+    }
     buttons.push(iconButton("refresh", "Refresh usage", () => post("refresh", acc.id), "quick refresh"));
     return buttons;
   }
@@ -877,7 +884,6 @@ import {
     }
     revealActiveChange(accounts);
     applyBusy();
-    renderProposal();
   }
 
   /**
@@ -994,98 +1000,6 @@ import {
   function byKind(acc, test) {
     const windows = (acc.windows || []).filter((w) => test(w.kind || ""));
     return windows.length ? windows : null;
-  }
-
-  // ---- proposing an account ----------------------------------------------
-
-  const proposeBar = document.getElementById("proposeBar");
-  const proposalEl = document.getElementById("proposal");
-  let shownProposal = null; // { kind, automatic }
-
-  for (const b of proposeBar.querySelectorAll("[data-propose]")) {
-    b.addEventListener("click", () => showProposal(b.dataset.propose, false));
-  }
-
-  /** Shows the best account for `kind` with a one-sentence reason and a Switch button. */
-  function showProposal(kind, automatic) {
-    shownProposal = { kind, automatic };
-    renderProposal();
-    proposalEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }
-
-  function hideProposal() {
-    shownProposal = null;
-    renderProposal();
-  }
-
-  function renderProposal() {
-    proposalEl.innerHTML = "";
-    const accounts = state.accounts || [];
-    // A Propose button is only worth showing when it can propose another account: one that is
-    // usable for that limit and is not the active one.
-    const worthIt = (kind) => rankAccounts(accounts, kind).some((a) => !a.isActive);
-    const regular = worthIt("session");
-    const fable = accounts.some((a) => (a.windows || []).some((w) => w.kind === "weekly_fable")) && worthIt("weekly_fable");
-    proposeBar.classList.toggle("hidden", !regular && !fable);
-    proposeBar.querySelector("[data-propose=session]").classList.toggle("hidden", !regular);
-    proposeBar.querySelector("[data-propose=weekly_fable]").classList.toggle("hidden", !fable);
-    if (shownProposal && !shownProposal.automatic && ((shownProposal.kind === "session" && !regular) || (shownProposal.kind === "weekly_fable" && !fable))) {
-      shownProposal = null;
-    }
-    if (!shownProposal || accounts.length === 0) {
-      proposalEl.classList.add("hidden");
-      return;
-    }
-    const { kind, automatic } = shownProposal;
-    const name = limitName(kind);
-    const result = propose(accounts, kind);
-    proposalEl.classList.remove("hidden");
-    proposalEl.className = "proposal " + (result ? "notice info" : "notice warn");
-
-    const body = el("div", "proposal-body");
-    const head = el("div", "proposal-head");
-    head.appendChild(
-      el("span", "proposal-kicker", automatic ? `Your ${name} limit is used up — next accounts` : `Proposed accounts for ${name}`)
-    );
-    head.appendChild(iconButton("close", "Dismiss", hideProposal, "proposal-close"));
-    body.appendChild(head);
-
-    if (!result) {
-      body.appendChild(el("div", "proposal-reason", noProposalReason(accounts, kind)));
-    } else {
-      const list = el("ol", "proposal-list");
-      result.candidates.forEach((cand, i) => {
-        const item = el("li", "proposal-item" + (i === 0 ? " best" : ""));
-        const row = el("div", "proposal-row");
-        const who = el("div", "proposal-name");
-        who.append(el("span", "proposal-rank", String(i + 1)), avatar(cand.account), el("span", "", cand.account.label));
-        row.appendChild(who);
-        if (!cand.account.isActive) {
-          const sw = el("button", "tb-btn proposal-switch" + (i === 0 ? " primary" : ""));
-          sw.append(icon("swap"), el("span", "", "Switch"));
-          sw.title = `Switch Claude Code to ${cand.account.label}`;
-          sw.addEventListener("click", () => {
-            post("switch", cand.account.id);
-            hideProposal();
-          });
-          row.appendChild(sw);
-        } else {
-          row.appendChild(el("span", "proposal-active", "active"));
-        }
-        item.appendChild(row);
-        // The limit this proposal is about, as the card's usage bar.
-        const w = (cand.account.windows || []).find((x) => x.kind === kind);
-        if (w) {
-          const meters = el("div", "meters proposal-meters");
-          meters.appendChild(meter(w, state.warnThreshold || 80));
-          item.appendChild(meters);
-        }
-        item.appendChild(el("div", "proposal-reason", cand.reason));
-        list.appendChild(item);
-      });
-      body.appendChild(list);
-    }
-    proposalEl.append(icon(result ? "info" : "warning"), body);
   }
 
   /** Top progress bar while anything loads; shimmer and a spinning refresh icon on updating cards. */

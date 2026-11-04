@@ -556,17 +556,6 @@ export function activate(context: vscode.ExtensionContext): void {
     },
     (id, previous, next) => {
       limitNotifier.onSnapshot(id, previous, next);
-      // The active account just ran out of a limit: propose the next account right away.
-      if (id === store.getActiveId() && previous) {
-        const ranOut = next.windows.find(
-          (w) => w.percent >= 100 && (previous.windows.find((p) => p.kind === w.kind)?.percent ?? 0) < 100
-        );
-        if (ranOut) {
-          const kind = ranOut.kind === "session" || ranOut.kind.startsWith("weekly_") ? ranOut.kind : "session";
-          viewProvider.showProposal(kind as "session" | `weekly_${string}`, true);
-          void vscode.commands.executeCommand("claudeAutoSwitch.accountsView.focus");
-        }
-      }
       if (id === store.getActiveId()) {
         void runAutoSwitch();
       }
@@ -671,6 +660,9 @@ export function activate(context: vscode.ExtensionContext): void {
       if (id && !(await confirmSwitch(targetId))) {
         return;
       }
+      // Marked before the switch: it may reload the window, and the mark has to be
+      // saved by then for the hold to survive the restart.
+      await store.setManualSwitchAt(targetId, Date.now());
       let res = await switchService.switchTo(targetId);
       if (!res.ok && res.reauthProfileId) {
         const completed = await completeProfileReauthorization(res.reauthProfileId, true);
@@ -681,6 +673,7 @@ export function activate(context: vscode.ExtensionContext): void {
         }
       }
       if (!res.ok) {
+        await store.setManualSwitchAt(targetId, undefined); // nothing to hold
         if (res.reauthProfileId) {
           const choice = await vscode.window.showWarningMessage(
             `${res.message} Reauthorize this profile in an isolated Claude login so another saved account cannot overwrite it.`,
