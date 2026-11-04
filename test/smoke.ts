@@ -31,6 +31,7 @@ import {
 import { buildTimeline, Segment, timelineStats } from "../src/availability";
 import { AVATAR_COLORS, avatarDescription, avatarState, starburstGlyph } from "../src/avatar";
 import { nameTone, nameToneDescription, resetTone, toneOfPercent } from "../src/tone";
+import { autoSaveDecision, loginKey } from "../src/autoSave";
 import { noProposalReason, propose, rankAccounts, urgencyOf } from "../src/propose";
 import {
   AutoSwitchAccount,
@@ -1784,6 +1785,34 @@ function runAutoSwitchTests(): void {
   );
 }
 
+
+function runAutoSaveTests(): void {
+  console.log("auto-saving a new login:");
+  const on = { enabled: true };
+  const fresh = { loggedIn: true, identity: { email: "a@example.com" } };
+
+  check("a login that is not saved yet is saved", autoSaveDecision(fresh, on).save === true);
+  check("the account uuid is the key when there is one", loginKey({ identity: { accountUuid: "u1", email: "a@example.com" } }) === "u1");
+  check("the email stands in for a missing uuid", loginKey(fresh) === "a@example.com");
+  check("a login with no identity still gets a key", loginKey({ loggedIn: true }) === "unidentified-login");
+
+  check("a login that already has a profile is left alone", autoSaveDecision({ loggedIn: true, ownerId: "p1" }, on).save === false);
+  check("no login, nothing to save", autoSaveDecision({ loggedIn: false }, on).save === false);
+  check("turned off, nothing is saved", autoSaveDecision(fresh, { enabled: false }).save === false);
+
+  const first = autoSaveDecision(fresh, on);
+  check("the same login is attempted once", first.save && autoSaveDecision(fresh, { enabled: true, attempted: first.key }).save === false);
+  check(
+    "the reason says it was already attempted",
+    autoSaveDecision(fresh, { enabled: true, attempted: "a@example.com" }) .save === false &&
+      (autoSaveDecision(fresh, { enabled: true, attempted: "a@example.com" }) as { reason: string }).reason === "tried"
+  );
+  check(
+    "another login after it is attempted on its own",
+    autoSaveDecision({ loggedIn: true, identity: { email: "b@example.com" } }, { enabled: true, attempted: "a@example.com" }).save === true
+  );
+}
+
 function runToneTests(): void {
   console.log("usage colors:");
   const w = (kind: string, percent: number, label?: string) => ({ kind, label: label ?? kind, percent });
@@ -1840,6 +1869,7 @@ runToneTests();
 runResetToneTests();
 runProposeTests();
 runAutoSwitchTests();
+runAutoSaveTests();
 runBrowserOAuthTests();
 runLimitResetTests();
 runIdentityTests();

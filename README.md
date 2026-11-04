@@ -50,12 +50,13 @@ newer on Windows, macOS, or Linux.
 
 ## Getting started
 
-1. Log in to Claude Code with your first account.
-2. Open the **Claude Auto Switch** panel from the activity bar and click **Save this account**.
-3. Click **Add account** and log in with another account. The current account stays active.
-4. That's it — automation is on by default. The panel lists accounts next-to-be-used first, and
+1. Log in to Claude Code with your first account. It is **saved automatically** — the panel shows
+   it with an offer to rename it. (`autoSaveNewAccounts` turns that off, leaving a **Save** button.)
+2. Open the **Claude Auto Switch** panel from the activity bar, click **Add account**, and log in
+   with another account. That one is saved on its own too, and the current account stays active.
+3. That's it — automation is on by default. The panel lists accounts next-to-be-used first, and
    `Claude: Show the auto-switch log` says what it decided and why.
-5. Switching replaces Claude Code's login, so **the window is reloaded afterwards**. The extension
+4. Switching replaces Claude Code's login, so **the window is reloaded afterwards**. The extension
    asks; `autoReloadAfterSwitch` does it without asking.
 
 > **Never use `/logout` to change accounts.** It revokes that login on Anthropic's side, and the
@@ -110,8 +111,10 @@ overrides that, and `autoSwitch.sortList` turns it off.
 
 ## The accounts panel
 
-- **Save and add accounts.** A login that isn't saved yet appears in its own box with a **Save**
-  button. **Add account** logs in to another account without touching the current one.
+- **Accounts save themselves.** A login Claude Code starts using is saved as soon as it appears,
+  with an offer to rename it; each login is attempted once, so a broken one can't nag. With
+  `autoSaveNewAccounts` off, it waits in its own box behind a **Save** button instead.
+  **Add account** logs in to another account without touching the current one.
 - **Live usage limits** for the 5-hour, weekly and model-specific windows, with reset times.
 - **Colors tell you the state.** The icon is green while an account has limit left, orange once a
   limit is used up, gray when usage is unknown. The name, and the active account in the status bar,
@@ -243,6 +246,7 @@ All settings start with `claudeAutoSwitch.`, and the Settings editor groups them
 
 | Setting | Default | Description |
 | --- | --- | --- |
+| `autoSaveNewAccounts` | `true` | Save a Claude Code login as an account as soon as it appears |
 | `autoReloadAfterSwitch` | `false` | Reload the window automatically after switching |
 
 ### Usage history

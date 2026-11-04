@@ -6,6 +6,7 @@ import * as vscode from "vscode";
 import { AccountStore } from "./accountStore";
 import { AccountWindowService } from "./accountWindow";
 import { busiestWindow, reachedOwnLimit, switchOutPercentOf } from "./autoSwitch";
+import { autoSaveDecision } from "./autoSave";
 import { AutoSwitchController, readAutoSwitchSettings } from "./autoSwitchService";
 import { BrowserOAuthLogin } from "./browserOAuth";
 import {
@@ -166,7 +167,44 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   context.subscriptions.push({ dispose: () => clearInterval(currentUsageTimer) });
 
-  let notifiedUnsavedKey: string | undefined;
+  // A login Claude Code starts using is saved on its own, so logging in is all the
+  // user has to do. Each login is attempted once: a failed one waits for a new login
+  // instead of asking again on every poll.
+  let autoSaveAttempted: string | undefined;
+  let autoSaving: Promise<void> | undefined;
+  const autoSaveCurrentLogin = (state: CurrentAccountState): void => {
+    const decision = autoSaveDecision(
+      { loggedIn: state.loggedIn, ownerId: state.ownerId, identity: state.unsavedIdentity },
+      {
+        enabled: config().get<boolean>("autoSaveNewAccounts", true),
+        attempted: autoSaveAttempted,
+      }
+    );
+    if (!decision.save || autoSaving) {
+      return;
+    }
+    autoSaveAttempted = decision.key;
+    autoSaving = switchService
+      .captureCurrent()
+      .then(async (res) => {
+        if (!res.ok) {
+          // Leave the panel's Save button to it, and say why only once.
+          vscode.window.showWarningMessage(res.message);
+          return;
+        }
+        if (res.createdId) {
+          offerRename(res.createdId, `Saved "${store.get(res.createdId)?.label ?? "account"}".`);
+          await poller.pollOne(res.createdId, true);
+        }
+        await synchronizeCurrentProfile();
+        refreshUI();
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        autoSaving = undefined;
+      });
+  };
+
   const applyCurrentState = (state: CurrentAccountState) => {
     profileActivity.setActiveProfile(store.getActiveId());
     statusBar.setUnsavedIdentity(state.unsavedIdentity);
@@ -174,23 +212,10 @@ export function activate(context: vscode.ExtensionContext): void {
     lastCurrentState = state;
     currentUnsaved = Boolean(state.loggedIn && !state.ownerId);
     void refreshCurrentUsage(currentUnsaved);
-    const key = state.unsavedIdentity ? identityLabel(state.unsavedIdentity) : undefined;
-    if (key && key !== notifiedUnsavedKey) {
-      notifiedUnsavedKey = key;
-      void vscode.window
-        .showInformationMessage(
-          `Claude Code is logged in as ${key}, which is not saved as a profile yet.`,
-          "Save as profile"
-        )
-        .then((choice) => {
-          if (choice === "Save as profile") {
-            void vscode.commands.executeCommand("claudeAutoSwitch.addCurrentAccount");
-          }
-        });
+    if (state.ownerId || !state.loggedIn) {
+      autoSaveAttempted = undefined; // a later login is attempted again
     }
-    if (!key) {
-      notifiedUnsavedKey = undefined;
-    }
+    autoSaveCurrentLogin(state);
   };
 
   const synchronizeCurrentProfile = async (options: { retryFailed?: boolean } = {}) => {

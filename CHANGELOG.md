@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.0
+
+- **A new login saves itself.** When Claude Code starts using a login that is not one of the saved
+  accounts, it is saved straight away, with an offer to rename it — logging in is all there is to
+  do, and the "this login is not saved yet" prompt is gone. Each login is attempted once, so an
+  incomplete one cannot ask again on every poll, and a later login is attempted on its own.
+  `autoSaveNewAccounts` turns it off and leaves the panel's **Save** button to it.
+
 ## 2.4.4
 
 - The description reads "Auto switch your Claude accounts; Claude Code uses the one whose limit
