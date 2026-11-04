@@ -4,7 +4,7 @@ export function hasAccessToken(creds: Partial<OAuthCreds> | null | undefined): b
   return isNonEmptyString(creds?.accessToken);
 }
 
-export function hasRefreshToken(creds: Partial<OAuthCreds> | null | undefined): boolean {
+function hasRefreshToken(creds: Partial<OAuthCreds> | null | undefined): boolean {
   return isNonEmptyString(creds?.refreshToken);
 }
 

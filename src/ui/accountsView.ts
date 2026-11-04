@@ -138,11 +138,6 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
     void this.view?.webview.postMessage({ type: "busy", ...this.busy });
   }
 
-  /** Shows a proposal for `kind` in the panel (e.g. after the active account's limit ran out). */
-  showProposal(kind: "session" | `weekly_${string}`, automatic: boolean): void {
-    void this.view?.webview.postMessage({ type: "propose", kind, automatic });
-  }
-
   /** Usage limits of the unsaved current login, shown like an account's limits. */
   setCurrentUsage(windows: ViewWindow[] | undefined): void {
     this.currentWindows = windows;
@@ -170,7 +165,7 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.html = this.getHtml(webviewView.webview);
 
     webviewView.webview.onDidReceiveMessage(
-      (msg: { type: string; id?: string; ids?: string[]; url?: string; settings?: unknown; text?: unknown; kind?: unknown }) => {
+      (msg: { type: string; id?: string; ids?: string[]; url?: string; settings?: unknown; text?: unknown }) => {
       switch (msg.type) {
         case "copyName": {
           // Double-click on a name: a saved account (by id), or the unsaved current login (no id).
@@ -418,13 +413,7 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
   <div id="stats" class="hidden" aria-label="Account statistics"></div>
   <div id="toolbar">
     <button id="loginBtn" class="tb-btn" title="Log in to another Claude account in an isolated login (the current account is not touched)">Add account</button>
-    <span class="spacer"></span>
-    <span id="proposeBar" class="propose-bar hidden">
-      <button id="proposeSessionBtn" class="tb-btn" data-propose="session" title="Which other account to switch to for the 5h limit: those whose capacity would be lost soonest come first">Propose</button>
-      <button id="proposeFableBtn" class="tb-btn" data-propose="weekly_fable" title="Which other account to switch to for the Fable limit: those whose capacity would be lost soonest come first">Propose for Fable</button>
-    </span>
   </div>
-  <div id="proposal" class="proposal hidden" role="status" aria-live="polite"></div>
   <div id="menu" class="hidden" role="menu"></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="about" class="hidden" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">

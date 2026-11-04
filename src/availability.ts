@@ -12,8 +12,8 @@ import { HistoryPoint } from "./historyTypes";
 /** free < 80% <= high < 100% <= limited; nodata where nothing is known. */
 export type LaneState = "free" | "high" | "limited" | "nodata";
 
-export const HIGH_PERCENT = 80;
-export const LIMIT_PERCENT = 100;
+const HIGH_PERCENT = 80;
+const LIMIT_PERCENT = 100;
 
 export interface Segment {
   start: number;
@@ -104,7 +104,7 @@ export function timelineStats(overall: Segment[]): TimelineStats {
 
 const WEEK_MS = 7 * 86_400_000;
 
-export function stateOf(percent: number): LaneState {
+function stateOf(percent: number): LaneState {
   return percent >= LIMIT_PERCENT ? "limited" : percent >= HIGH_PERCENT ? "high" : "free";
 }
 

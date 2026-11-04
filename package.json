@@ -2,7 +2,7 @@
   "name": "claude-auto-switch",
   "displayName": "Claude Auto Switch",
   "description": "Auto switch your Claude accounts; Claude Code uses the one whose limit resets soonest, with live usage limits.",
-  "version": "2.5.0",
+  "version": "3.0.0",
   "publisher": "solomon-ochepa",
   "author": {
     "name": "Solomon Ochepa",

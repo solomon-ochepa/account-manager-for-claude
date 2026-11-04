@@ -126,17 +126,8 @@ overrides that, and `autoSwitch.sortList` turns it off.
 - **Stays simple.** Filters, sorting and statistics appear once you have two accounts.
 - **Status bar** with the active account and its usage. **Notifications** when a used-up limit is
   available again, with a **Switch** button.
-- **Undo last switch** puts the previous account back.
-
-### Switching by hand
-
-**Propose** and **Propose for Fable** list the three best other accounts for that limit, each with
-its limit bar, a one-line reason and a **Switch** button. Accounts that would lose capacity soonest
-come first — the most available percent per hour until the limit resets — and used-up or expired
-accounts are skipped. When the active account's limit runs out, the next accounts are proposed on
-their own:
-
-![When the active account's limit runs out, the next accounts are proposed](docs/propose-auto.gif)
+- **Switch** on a card, the status bar, or `Claude: Switch account` moves accounts by hand at any
+  time; **Undo last switch** puts the previous one back.
 
 ## Usage analytics
 

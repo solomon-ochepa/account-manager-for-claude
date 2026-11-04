@@ -58,7 +58,7 @@ export class MacKeychain implements SecretStore {
 }
 
 /** The keychain account name Claude Code files its items under. */
-export function keychainAccount(): string {
+function keychainAccount(): string {
   let user: string;
   try {
     user = process.env.USER || os.userInfo().username;

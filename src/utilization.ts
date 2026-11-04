@@ -17,7 +17,7 @@ import { HistoryPoint } from "./historyTypes";
  * Plain functions over plain objects, so the webview bundles can import them.
  */
 
-export const SESSION_CYCLE_MS = 5 * 3_600_000;
+const SESSION_CYCLE_MS = 5 * 3_600_000;
 export const WEEK_MS = 7 * 86_400_000;
 
 /** Length of a limit's reset cycle. */

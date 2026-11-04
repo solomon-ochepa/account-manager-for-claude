@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.0.0
+
+The automation decides which account to use, so the machinery for asking a human to decide is gone.
+
+- **Removed: account proposals.** **Propose** and **Propose for Fable**, the proposal panel, and
+  the pop-up that listed the next three accounts when a limit ran out are all gone — auto-switch
+  already takes the next account, and the **Claude Auto Switch** log says which and why. Switching
+  by hand is unchanged: **Switch** on a card, the status bar, or `Claude: Switch account`.
+- **Removed: `src/propose.ts`.** The two measures the automation still uses — urgency and the
+  wait formatter — and the shared limit types moved to `src/limits.ts`, named for what they are
+  rather than for the feature that used to own them.
+- Dead code taken out with it: the proposal's webview rendering (~90 lines), its markup, its 143
+  lines of CSS, the `warning` and `plus` icons, the `.notice.warn` style, a toolbar spacer with
+  nothing left to push, and an unused message field.
+- Fifteen helpers that nothing outside their own file used are no longer exported
+  (`stateOf`, `reasonFor`, `eligible`, `spentWindows`, `normalizeEmail`, `keychainAccount`,
+  `hasRefreshToken`, `isDefaultConfigDir` and others), so each file's public surface is what it
+  actually offers.
+- Unused assets deleted: `docs/propose-auto.gif`, `docs/logo.png`, and a 4.7 MB demo video that
+  nothing referenced (which also drops the `media/*.mp4` package exclusion it needed).
+- The proposal tests are replaced by `limit measures`, covering the urgency rule the
+  `urgency` order depends on and the wait formatter.
+
 ## 2.5.0
 
 - **A new login saves itself.** When Claude Code starts using a login that is not one of the saved
