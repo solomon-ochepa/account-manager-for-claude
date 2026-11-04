@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.1.1
+
+- **Issue reporting works.** GitHub disables issues on a fork, so the **Report a problem** link in
+  the About sheet and `bugs.url` had nowhere to go. Issues are on, with templates that ask for the
+  version, the editor and OS, and the auto-switch log — and that say not to paste credentials.
+- The page's troubleshooting section ends with where to report, and `qna` is off so a Marketplace
+  listing would point at the issue tracker rather than a Q&A tab.
+
 ## 3.1.0
 
 Switching by hand meant something for about four minutes: the next round re-applied the order and

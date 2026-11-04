@@ -1,0 +1,42 @@
+name: Something is wrong
+description: An account was not switched, a limit read wrong, or the panel misbehaved.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Extension version
+      description: The About sheet in the panel shows it, under the name.
+      placeholder: 3.1.1
+    validations:
+      required: true
+  - type: input
+    id: editor
+    attributes:
+      label: Editor and OS
+      placeholder: VS Code 1.95 on macOS 15
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: The auto-switch log
+      description: >
+        Run `Claude: Show the auto-switch log` and paste the lines around the problem. Every round
+        says what it decided — `stay`, `switch`, `wait` or `failed` — and why. This is usually
+        enough to find the cause.
+      render: text
+  - type: textarea
+    id: accounts
+    attributes:
+      label: The accounts involved
+      description: >
+        How many accounts, their plans, and which per-account controls are on (excluded, kept
+        active, a hand-over limit). **Do not paste tokens or credentials** — they are never needed.

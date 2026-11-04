@@ -1,0 +1,16 @@
+name: An idea
+description: Something the automation should do differently.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What should it do
+      description: The situation you are in, and what you want to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: What happens today
+      description: What you do instead at the moment.

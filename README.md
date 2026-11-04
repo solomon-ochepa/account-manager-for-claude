@@ -334,6 +334,11 @@ work without it, and only logging in from the terminal needs it.
 **macOS Keychain.** Claude Code keeps its login in the login Keychain. If switching reports that the
 Keychain could not be read or updated, unlock the login keychain in Keychain Access and try again.
 
+**Still stuck?** Open an [issue](https://github.com/solomon-ochepa/claude-auto-switch/issues) — the
+templates ask for the version and the auto-switch log, which is usually enough to find the cause.
+Never paste tokens or credentials; they are not needed. **Report a problem** in the panel's About
+sheet goes to the same place.
+
 ## Privacy and security
 
 - **No telemetry.** The extension collects no data and sends nothing to its author, publisher or any
