@@ -22,6 +22,8 @@ much of every account's limits is left, and let the extension tell you which acc
   all your accounts, each with the time until it resets. Same data as Claude Code's `/usage`.
 - **It picks your next account.** Proposals rank your other accounts by the capacity you would
   lose soonest, and pop up on their own when the active account runs out.
+- **Or switches for you.** Turn on auto-switch and the extension moves to the next account by
+  itself when the active one runs out, taking the account whose weekly limit resets soonest.
 - **No more daily logins.** Tokens are refreshed exactly the way Claude Code refreshes them, under
   its own lock, so neither side is ever left holding a spent token.
 - **See what you actually use.** Usage analytics show how much of each limit's capacity you used
@@ -82,6 +84,33 @@ much of every account's limits is left, and let the extension tell you which acc
 - When the active account's limit runs out, the next accounts are proposed automatically:
 
   ![When the active account's limit runs out, the next accounts are proposed](docs/propose-auto.gif)
+
+### Auto-switch
+
+Turn on `autoSwitch.enabled` and the extension changes accounts by itself when the active one
+runs out of a limit.
+
+- **The nearest reset goes first.** Capacity that is not used before a limit resets is lost, so
+  the account whose weekly (7-day) limit resets soonest is taken first. `autoSwitch.order` chooses
+  another rule: the soonest reset of any limit, the capacity that would be lost soonest, the most
+  usage left, or your own list order.
+- **Availability is checked before the switch**, not just taken from the last poll: the account's
+  usage is read once more, and `autoSwitch.minAvailablePercent` sets how much of every limit it
+  must still have.
+- **A skipped account comes back.** An account that turns out to be used up, whose login expired,
+  that is in use in another window, or that the switch refuses for any other reason, is passed
+  over and the next one is tried. The skip lasts until the next check, which confirms the account
+  again and takes it as soon as it qualifies — the panel shows it as **Skipped** meanwhile.
+- **Every account takes part**, until you exclude it from the **⋯** menu on its card
+  (`Exclude from auto-switching`). Excluded accounts are marked **No auto-switch** and are never
+  switched to automatically; **Switch** by hand still works.
+- **The list follows the same order**, so the account that is used next is at the top. Choosing a
+  sort in the panel overrides it, and `autoSwitch.sortList` turns it off.
+- `Claude: Switch to the next account now (auto-switch)` runs one round on demand, even while
+  auto-switching is off.
+
+Switching replaces Claude Code's login, so the window still has to be reloaded afterwards —
+`autoReloadAfterSwitch` does that without asking.
 
 ### Logins that stay valid
 
@@ -151,6 +180,8 @@ account can be used, across a week or hour by hour for a single day.
 | `Claude: Reauthorize account profile` | Log a saved account in again, without touching the active one |
 | `Claude: Complete profile reauthorization` | Finish a reauthorization |
 | `Claude: Undo last switch` | Restore the previous account |
+| `Claude: Switch to the next account now (auto-switch)` | Run one auto-switch round now |
+| `Claude: Include or exclude an account in auto-switching` | Opt an account in or out |
 | `Claude: Rename account profile` / `Remove account profile` | Manage saved accounts |
 | `Claude: Back up account list (password-protected ZIP)` | Save all accounts to an encrypted ZIP |
 | `Claude: Restore account list from backup` | Merge a backup into the list |
@@ -168,6 +199,11 @@ All settings start with `accountManagerForClaude.`.
 | `requestDelaySeconds` | `2` | Pause between requests to Anthropic; accounts are checked one at a time, never in parallel |
 | `notifyOnLimitReset` | `true` | Notify when a used-up limit is available again |
 | `autoReloadAfterSwitch` | `false` | Reload the window automatically after switching |
+| `autoSwitch.enabled` | `false` | Switch to the next account on its own when the active one runs out |
+| `autoSwitch.order` | `weeklyReset` | Which account is taken first: `weeklyReset`, `anyReset`, `urgency`, `remaining`, or `listOrder` |
+| `autoSwitch.minAvailablePercent` | `1` | How much (%) of every limit an account must have left to be switched to |
+| `autoSwitch.notify` | `true` | Notify which account auto-switching moved to, and why |
+| `autoSwitch.sortList` | `true` | Sort the panel by the auto-switch order, next account first |
 | `warnThresholdPercent` | `80` | Usage bars and the status bar turn red from this percent, and orange from 75% of it |
 | `usageHistory.enabled` | `false` | Collect usage history for analytics and the calendar |
 | `usageHistory.intervalSeconds` | `60` | Seconds between usage readings (minimum 60) |

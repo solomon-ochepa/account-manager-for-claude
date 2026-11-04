@@ -16,7 +16,7 @@ import {
 
 (function () {
   const vscode = acquireVsCodeApi();
-  let state = { accounts: [], warnThreshold: 80 };
+  let state = { accounts: [], warnThreshold: 80, autoSwitch: { enabled: false, order: "weeklyReset", sortList: true } };
 
   const listEl = document.getElementById("list");
   const emptyEl = document.getElementById("empty");
@@ -51,6 +51,8 @@ import {
     info: '<circle cx="8" cy="8" r="6"/><path d="M8 7.3V11M8 4.9v.2"/>',
     warning: '<path d="M8 2.3 14.2 13H1.8z"/><path d="M8 6.4v3.2M8 11.2v.2"/>',
     signIn: '<path d="M9.5 2.5h3v11h-3M2.5 8h7M7 5.5 9.5 8 7 10.5"/>',
+    autoOn: '<path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13"/>',
+    autoOff: '<path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13"/><path d="M2 14 14 2"/>',
   };
 
   function icon(name) {
@@ -302,7 +304,7 @@ import {
     );
     root.dataset.id = acc.id;
     // Dragging only makes sense in the user's own order.
-    root.draggable = filter.sort === "custom";
+    root.draggable = activeSort() === "custom";
     if (root.draggable) {
       const grip = el("span", "grip");
       grip.title = "Drag to reorder";
@@ -326,6 +328,15 @@ import {
       const plan = el("span", "badge", acc.subscriptionType);
       plan.title = `Plan: ${acc.subscriptionType}`;
       head.appendChild(plan);
+    }
+    if (acc.autoSwitch === false) {
+      const off = el("span", "badge muted", "No auto-switch");
+      off.title = "This account is excluded from auto-switching. Turn it back on in the \u22ef menu.";
+      head.appendChild(off);
+    } else if (acc.autoSwitchSkip) {
+      const skipped = el("span", "badge muted", "Skipped");
+      skipped.title = "Auto-switching passed this account over: " + acc.autoSwitchSkip + "\nIt is checked again on the next round.";
+      head.appendChild(skipped);
     }
     if (acc.needsReauthorization) {
       const expired = el("span", "badge expired-badge");
@@ -429,13 +440,19 @@ import {
     items.push(null);
     const accounts = state.accounts || [];
     const index = accounts.findIndex((a) => a.id === acc.id);
-    if (filter.sort === "custom") {
+    if (activeSort() === "custom") {
       if (index > 0) items.push({ icon: "up", label: "Move up", run: () => move(acc.id, index - 1) });
       if (index >= 0 && index < accounts.length - 1) {
         items.push({ icon: "down", label: "Move down", run: () => move(acc.id, index + 1) });
       }
       if (accounts.length > 1) items.push(null);
     }
+    items.push({
+      icon: acc.autoSwitch === false ? "autoOn" : "autoOff",
+      label: acc.autoSwitch === false ? "Include in auto-switching" : "Exclude from auto-switching",
+      run: act("toggleAutoSwitch"),
+    });
+    items.push(null);
     items.push({
       icon: "key",
       label: "Reauthorize…",
@@ -712,7 +729,7 @@ import {
       sortBtn,
       "Sort accounts",
       SORTS.map((s) => ({
-        icon: s.key === filter.sort ? "check" : "blank",
+        icon: s.key === activeSort() ? "check" : "blank",
         label: s.label,
         run: () => setFilter({ sort: s.key }),
       }))
@@ -736,10 +753,10 @@ import {
     moreFiltersBtn.title = extra.length ? "Filter: " + extra.join(", ") : "Filter by plan or model limit";
     moreFiltersBtn.setAttribute("aria-label", moreFiltersBtn.title);
     clearFiltersBtn.classList.toggle("hidden", !filtersActive(filter));
-    const sort = SORTS.find((s) => s.key === filter.sort) || SORTS[0];
+    const sort = SORTS.find((s) => s.key === activeSort()) || SORTS[0];
     sortBtn.title = "Sort: " + sort.label;
     sortBtn.setAttribute("aria-label", sortBtn.title);
-    sortBtn.classList.toggle("on", filter.sort !== "custom");
+    sortBtn.classList.toggle("on", activeSort() !== "custom");
   }
 
   const sessionEl = document.getElementById("session");
@@ -802,6 +819,16 @@ import {
     return box;
   }
 
+  /**
+   * The sort the list actually uses: the panel's own choice, or — while it is the custom
+   * order and `autoSwitch.sortList` is on — the auto-switch order, so the account that is
+   * used next is at the top.
+   */
+  function activeSort() {
+    const auto = state.autoSwitch || {};
+    return auto.sortList && filter.sort === "custom" ? "autoSwitch" : filter.sort;
+  }
+
   function render() {
     listEl.innerHTML = "";
     sessionEl.innerHTML = "";
@@ -824,7 +851,9 @@ import {
     }
     emptyEl.classList.add("hidden");
     const order = new Map(accounts.map((a, i) => [a.id, i]));
-    const visible = sortAccounts(accounts.filter((a) => matchesListing(a, filter)), order, filter.sort);
+    const visible = sortAccounts(accounts.filter((a) => matchesListing(a, filter)), order, activeSort(), {
+      autoSwitchOrder: (state.autoSwitch || {}).order,
+    });
     noMatchEl.classList.toggle("hidden", visible.length > 0);
     for (const acc of visible) {
       listEl.appendChild(card(acc, state.warnThreshold || 80));

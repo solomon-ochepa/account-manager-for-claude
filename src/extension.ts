@@ -5,6 +5,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { AccountStore } from "./accountStore";
 import { AccountWindowService } from "./accountWindow";
+import { AutoSwitchController, readAutoSwitchSettings } from "./autoSwitchService";
 import { BrowserOAuthLogin } from "./browserOAuth";
 import {
   getConfiguredClaudeCommand,
@@ -104,6 +105,8 @@ export function activate(context: vscode.ExtensionContext): void {
             void vscode.commands.executeCommand("accountManagerForClaude.switchAccount", profileId);
           }
         });
+      // An account that is usable again may be the one auto-switching was waiting for.
+      void runAutoSwitch();
     },
     (profileId) => void poller.pollOne(profileId, true).then(refreshUI)
   );
@@ -534,6 +537,9 @@ export function activate(context: vscode.ExtensionContext): void {
           void vscode.commands.executeCommand("accountManagerForClaude.accountsView.focus");
         }
       }
+      if (id === store.getActiveId()) {
+        void runAutoSwitch();
+      }
       if (historyEnabled()) {
         const profile = store.get(id);
         void history
@@ -544,6 +550,33 @@ export function activate(context: vscode.ExtensionContext): void {
     applyCurrentState
   );
   poller.onBusyChange = (ids, all) => viewProvider.setBusy(ids, all);
+
+  // --- Auto-switching ---
+
+  const autoSwitch = new AutoSwitchController(
+    store,
+    (id) => switchService.switchTo(id),
+    async (id) => {
+      await poller.pollOne(id, true);
+    },
+    readAutoSwitchSettings,
+    // A skipped account is reconsidered on the next check, so a skip lasts one interval.
+    () => Math.max(MIN_POLL_INTERVAL_SECONDS, config().get<number>("pollIntervalSeconds", 240)) * 1000
+  );
+  viewProvider.setAutoSwitchState(readAutoSwitchSettings(), (id) => autoSwitch.skipReason(id));
+
+  /** Checks whether another account should be used now; UI follows a switch. */
+  const runAutoSwitch = (options: { manual?: boolean } = {}) =>
+    autoSwitch.evaluate(options).then((outcome) => {
+      if (outcome.action === "switch") {
+        profileActivity.setActiveProfile(store.getActiveId());
+      }
+      // A failed round leaves skipped accounts behind, which the panel shows.
+      if (outcome.action === "switch" || outcome.action === "failed") {
+        refreshUI();
+      }
+      return outcome;
+    });
 
   // Publish the remembered owner before asynchronous startup work, so another
   // window does not start a second session on this login during restart.
@@ -714,6 +747,35 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("accountManagerForClaude.refreshAll", refreshAll)
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("accountManagerForClaude.autoSwitchNow", async () => {
+      const outcome = await runAutoSwitch({ manual: true });
+      if (outcome.action !== "switch") {
+        vscode.window[outcome.action === "failed" ? "showWarningMessage" : "showInformationMessage"](
+          outcome.message
+        );
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("accountManagerForClaude.toggleAutoSwitch", async (id?: string) => {
+      const targetId = id ?? (await pickAccount(store, "Include or exclude an account in auto-switching…"));
+      const profile = targetId ? store.get(targetId) : undefined;
+      if (!targetId || !profile) {
+        return;
+      }
+      const enabled = !(profile.autoSwitch ?? true);
+      await store.setAutoSwitch(targetId, enabled);
+      vscode.window.showInformationMessage(
+        enabled
+          ? `"${profile.label}" takes part in auto-switching again.`
+          : `"${profile.label}" is excluded from auto-switching.`
+      );
+      refreshUI();
+    })
   );
 
   context.subscriptions.push(
@@ -1099,6 +1161,11 @@ export function activate(context: vscode.ExtensionContext): void {
       if (e.affectsConfiguration("accountManagerForClaude.warnThresholdPercent")) {
         refreshUI();
       }
+      if (e.affectsConfiguration("accountManagerForClaude.autoSwitch")) {
+        viewProvider.setAutoSwitchState(readAutoSwitchSettings(), (id) => autoSwitch.skipReason(id));
+        refreshUI();
+        void runAutoSwitch();
+      }
       if (e.affectsConfiguration("accountManagerForClaude.credentialsPath")) {
         watchCredentialsFile();
         onCredentialsFileChanged();
@@ -1121,6 +1188,7 @@ export function activate(context: vscode.ExtensionContext): void {
     refreshUI();
     poller.start();
     restartHistoryCollection();
+    void runAutoSwitch();
   });
 }
 

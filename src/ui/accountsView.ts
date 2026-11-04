@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
 import { AccountStore } from "../accountStore";
+import { needsReauthorization } from "../accountHealth";
+import { AutoSwitchSettings, DEFAULT_AUTO_SWITCH_SETTINGS } from "../autoSwitchService";
 import { CurrentAccountState } from "../credentialSync";
-import { hasUsableOAuthCreds } from "../credentialValidation";
 import { identityLabel } from "../identity";
 import { ListingSettings, normalizeListing } from "../listing";
-import { requiresProfileReauthorization } from "../oauth";
 import { copyToClipboard } from "./clipboard";
 
 /** The Claude Code login of this window, when it is not one of the saved profiles. */
@@ -44,6 +44,10 @@ interface ViewAccount {
   fetchedAt?: number;
   retryAfter?: number;
   needsReauthorization: boolean;
+  /** false = excluded from auto-switching. */
+  autoSwitch: boolean;
+  /** Why auto-switching passed this account over in the current round. */
+  autoSwitchSkip?: string;
   /** Which service the account belongs to; only Claude for now. */
   provider: "claude";
 }
@@ -55,6 +59,8 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
   private currentSession?: CurrentSessionView;
   private currentWindows?: ViewWindow[];
   private busy = { ids: [] as string[], all: false, session: false };
+  private autoSwitch: AutoSwitchSettings = DEFAULT_AUTO_SWITCH_SETTINGS;
+  private autoSwitchSkip: (id: string) => string | undefined = () => undefined;
   private aboutPending = false;
 
   constructor(
@@ -84,6 +90,13 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
   async applyViewSettings(settings: Record<string, unknown>): Promise<void> {
     await this.memento.update(AccountsViewProvider.VIEW_SETTINGS_KEY, settings);
     this.viewSettingsRev++;
+    this.refresh();
+  }
+
+  /** The auto-switch settings the panel shows (and sorts by), and why accounts were passed over. */
+  setAutoSwitchState(settings: AutoSwitchSettings, skipReason: (id: string) => string | undefined): void {
+    this.autoSwitch = settings;
+    this.autoSwitchSkip = skipReason;
     this.refresh();
   }
 
@@ -251,6 +264,14 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
         case "undo":
           void vscode.commands.executeCommand("accountManagerForClaude.undoSwitch");
           break;
+        case "toggleAutoSwitch":
+          if (msg.id) {
+            void vscode.commands.executeCommand("accountManagerForClaude.toggleAutoSwitch", msg.id);
+          }
+          break;
+        case "autoSwitchNow":
+          void vscode.commands.executeCommand("accountManagerForClaude.autoSwitchNow");
+          break;
       }
       }
     );
@@ -273,20 +294,19 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
       profiles.map(async (p): Promise<ViewAccount> => {
         const creds = await this.store.getCreds(p.id);
         const error = p.lastUsage?.error;
-        const needsReauthorization =
-          !hasUsableOAuthCreds(creds) ||
-          this.store.isRefreshTokenDead(p.id, creds?.refreshToken) ||
-          requiresProfileReauthorization(error);
+        const expired = needsReauthorization(this.store, p, creds);
         return {
           id: p.id,
           label: p.label,
           subscriptionType: p.subscriptionType,
           isActive: p.id === activeId,
           windows: p.lastUsage?.windows ?? [],
-          error: displayUsageError(error, needsReauthorization),
+          error: displayUsageError(error, expired),
           fetchedAt: p.lastUsage?.fetchedAt,
           retryAfter: p.lastUsage?.retryAfter,
-          needsReauthorization,
+          needsReauthorization: expired,
+          autoSwitch: p.autoSwitch ?? true,
+          autoSwitchSkip: this.autoSwitchSkip(p.id),
           provider: "claude",
         };
       })
@@ -302,6 +322,7 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
         version: this.version,
         busy: this.busy,
         viewSettings: this.getViewSettings(),
+        autoSwitch: this.autoSwitch,
         trackingEnabled: vscode.workspace
           .getConfiguration("accountManagerForClaude")
           .get<boolean>("usageHistory.enabled", false),

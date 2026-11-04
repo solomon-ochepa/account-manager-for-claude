@@ -642,6 +642,12 @@ button:focus-visible {
   border: 1px solid var(--border);
 }
 
+/* A state the user chose (or auto-switching noted), not one of the account's own. */
+.badge.muted {
+  border-style: dashed;
+  opacity: 0.8;
+}
+
 .ago {
   flex: 0 0 auto;
   font-size: 10px;

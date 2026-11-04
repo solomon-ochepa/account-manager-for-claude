@@ -110,6 +110,16 @@ export class AccountStore {
     }
   }
 
+  /** Opts an account in or out of auto-switching (every account takes part by default). */
+  async setAutoSwitch(id: string, enabled: boolean): Promise<void> {
+    const profiles = this.profiles;
+    const p = profiles.find((x) => x.id === id);
+    if (p && (p.autoSwitch ?? true) !== enabled) {
+      p.autoSwitch = enabled;
+      await this.saveProfiles(profiles);
+    }
+  }
+
   async rename(id: string, label: string): Promise<void> {
     const profiles = this.profiles;
     const p = profiles.find((x) => x.id === id);

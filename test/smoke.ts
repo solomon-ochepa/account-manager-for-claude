@@ -33,6 +33,14 @@ import { AVATAR_COLORS, avatarDescription, avatarState, starburstGlyph } from ".
 import { nameTone, nameToneDescription, resetTone, toneOfPercent } from "../src/tone";
 import { noProposalReason, propose, rankAccounts, urgencyOf } from "../src/propose";
 import {
+  AutoSwitchAccount,
+  AutoSwitchSkips,
+  availableNow,
+  planAutoSwitch,
+  rankForAutoSwitch,
+  weeklyResetOf,
+} from "../src/autoSwitch";
+import {
   DEFAULT_LISTING,
   extraFilterLabels,
   filtersActive,
@@ -1517,6 +1525,112 @@ function runProposeTests(): void {
   check("reason when only expired logins have it", noProposalReason([acc("z", [w("weekly_fable", 10)], { needsReauthorization: true })], "weekly_fable", now) === "Every account with a Fable limit has an expired login; reauthorize one first.");
 }
 
+
+function runAutoSwitchTests(): void {
+  console.log("auto-switch:");
+  const h = 3_600_000;
+  const now = Date.UTC(2026, 9, 13, 12, 0);
+  const at = (ms: number) => new Date(now + ms).toISOString();
+  const w = (kind: string, percent: number, resetIn: number | null = 2 * h) => ({
+    kind,
+    label: kind,
+    percent,
+    resetsAt: resetIn === null ? null : at(resetIn),
+  });
+  const acc = (
+    id: string,
+    windows: ReturnType<typeof w>[],
+    extra: Partial<AutoSwitchAccount> = {}
+  ): AutoSwitchAccount => ({ id, label: id, windows, ...extra });
+  const ids = (list: { id: string }[]) => list.map((x) => x.id).join();
+
+  const accounts: AutoSwitchAccount[] = [
+    acc("active", [w("session", 100, 3 * h), w("weekly_all", 40, 90 * h)], { isActive: true }),
+    acc("late", [w("session", 10, 4 * h), w("weekly_all", 20, 150 * h)]),
+    acc("soon", [w("session", 20, 4 * h), w("weekly_all", 35, 30 * h)]),
+    acc("mid", [w("session", 5, 4 * h), w("weekly_all", 15, 80 * h)]),
+    acc("used", [w("session", 100, 1 * h), w("weekly_all", 10, 20 * h)]),
+    acc("expired", [w("session", 0, 1 * h), w("weekly_all", 0, 10 * h)], { needsReauthorization: true }),
+    acc("optedOut", [w("session", 0, 1 * h), w("weekly_all", 0, 10 * h)], { autoSwitch: false }),
+    acc("nodata", []),
+  ];
+
+  check("the weekly limit gives the reset date", weeklyResetOf(accounts[2]) === now + 30 * h);
+  check(
+    "a model limit stands in when there is no general weekly limit",
+    weeklyResetOf(acc("x", [w("weekly_fable", 10, 12 * h)])) === now + 12 * h
+  );
+
+  check("an account with capacity on every limit is available", availableNow(accounts[1]));
+  check("a used-up limit makes it unavailable", !availableNow(accounts[4]));
+  check("an expired login makes it unavailable", !availableNow(accounts[5]));
+  check("no usage reading means not available", !availableNow(accounts[7]));
+  check("a minimum keeps nearly used-up accounts out", !availableNow(acc("y", [w("session", 97)]), 5));
+
+  const ranked = rankForAutoSwitch(accounts, { now });
+  check(
+    "nearest weekly reset first; active, used-up, expired, opted-out and unknown are left out",
+    ids(ranked) === "soon,mid,late"
+  );
+  check(
+    "another order can be chosen: most usage left first",
+    ids(rankForAutoSwitch(accounts, { now, order: "remaining" })) === "mid,late,soon"
+  );
+  check(
+    "the list order is an option too",
+    ids(rankForAutoSwitch(accounts, { now, order: "listOrder" })) === "late,soon,mid"
+  );
+
+  const plan = planAutoSwitch(accounts, { now });
+  check("the active account is used up, so the nearest reset is taken", plan.action === "switch" && plan.target?.id === "soon");
+  check(
+    "the reason names the reset and what is left",
+    plan.reason === "Its weekly limit resets in 1 d 6 h, the soonest of the available accounts, and 65% of its limits is left."
+  );
+
+  const staying = planAutoSwitch(
+    [acc("ok", [w("session", 10, 3 * h)], { isActive: true }), accounts[1]],
+    { now }
+  );
+  check("nothing happens while the active account can still be used", staying.action === "stay");
+
+  const waiting = planAutoSwitch([accounts[0], accounts[4]], { now });
+  check(
+    "with nothing available it waits and says for how long",
+    waiting.action === "wait" && waiting.reason === "No other account is available; the first one is usable again in 1 h." &&
+      waiting.nextAvailableAt === now + 1 * h
+  );
+  check(
+    "an account that opted out is not waited for either",
+    planAutoSwitch([accounts[0], accounts[6]], { now }).reason === "Every other account is opted out of auto-switching."
+  );
+
+  // A skipped account is only moved to the back, and is ranked normally again
+  // once the skip expires, so the next check reconfirms it.
+  const skips = new AutoSwitchSkips();
+  skips.record("soon", "in use in another window", now, 5 * 60_000);
+  check(
+    "a skipped account goes last, not away",
+    ids(rankForAutoSwitch(accounts, { now, skipped: skips.active(now) })) === "mid,late,soon"
+  );
+  check("the skip keeps its reason for the panel", skips.get("soon", now)?.reason === "in use in another window");
+  check(
+    "once the skip expires the account is ranked normally again",
+    ids(rankForAutoSwitch(accounts, { now: now + 6 * 60_000, skipped: skips.active(now + 6 * 60_000) })) === "soon,mid,late"
+  );
+  check("an expired skip is forgotten", skips.get("soon", now + 6 * 60_000) === undefined);
+
+  // The account list can follow the same order.
+  const listOrder = new Map(accounts.map((a, i) => [a.id, i]));
+  check(
+    "the list sorts by the auto-switch order: the next account first, the rest after",
+    sortAccounts(accounts, listOrder, "autoSwitch", { now })
+      .map((a) => a.id)
+      .join()
+      .startsWith("soon,mid,late,")
+  );
+}
+
 function runToneTests(): void {
   console.log("usage colors:");
   const w = (kind: string, percent: number, label?: string) => ({ kind, label: label ?? kind, percent });
@@ -1572,6 +1686,7 @@ runAvatarTests();
 runToneTests();
 runResetToneTests();
 runProposeTests();
+runAutoSwitchTests();
 runBrowserOAuthTests();
 runLimitResetTests();
 runIdentityTests();

@@ -128,6 +128,14 @@
         "title": "Claude: Undo last switch"
       },
       {
+        "command": "accountManagerForClaude.autoSwitchNow",
+        "title": "Claude: Switch to the next account now (auto-switch)"
+      },
+      {
+        "command": "accountManagerForClaude.toggleAutoSwitch",
+        "title": "Claude: Include or exclude an account in auto-switching"
+      },
+      {
         "command": "accountManagerForClaude.openPanel",
         "title": "Claude: Show accounts panel"
       },
@@ -209,6 +217,11 @@
           "group": "2_tools@2"
         },
         {
+          "command": "accountManagerForClaude.autoSwitchNow",
+          "when": "view == accountManagerForClaude.accountsView",
+          "group": "2_tools@3"
+        },
+        {
           "command": "accountManagerForClaude.backupAccounts",
           "when": "view == accountManagerForClaude.accountsView",
           "group": "3_backup@1"
@@ -230,6 +243,9 @@
         },
         {
           "command": "accountManagerForClaude.renameAccount"
+        },
+        {
+          "command": "accountManagerForClaude.toggleAutoSwitch"
         }
       ]
     },
@@ -263,6 +279,47 @@
           "type": "boolean",
           "default": false,
           "markdownDescription": "Automatically reload the VS Code window after switching accounts (required for Claude Code to pick up the new account). When disabled, the extension asks first."
+        },
+        "accountManagerForClaude.autoSwitch.enabled": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Switch to the next account on its own as soon as the active account runs out of a limit (and when a better account becomes available). The next account is chosen by `#accountManagerForClaude.autoSwitch.order#`; every saved account takes part unless it is excluded from the panel's **⋯** menu."
+        },
+        "accountManagerForClaude.autoSwitch.order": {
+          "type": "string",
+          "default": "weeklyReset",
+          "enum": [
+            "weeklyReset",
+            "anyReset",
+            "urgency",
+            "remaining",
+            "listOrder"
+          ],
+          "enumDescriptions": [
+            "The account whose weekly (7-day) limit resets soonest goes first, so its capacity is used before it is lost.",
+            "The account whose next limit of any kind resets soonest goes first.",
+            "The account that would lose the most capacity per hour goes first.",
+            "The account with the most usage left goes first.",
+            "The first available account in the panel's order goes first."
+          ],
+          "markdownDescription": "The order in which available accounts are taken by auto-switching."
+        },
+        "accountManagerForClaude.autoSwitch.minAvailablePercent": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0,
+          "maximum": 100,
+          "markdownDescription": "An account is only switched to when at least this much (%) of every one of its limits is left."
+        },
+        "accountManagerForClaude.autoSwitch.notify": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show a notification naming the account auto-switching moved to, and why."
+        },
+        "accountManagerForClaude.autoSwitch.sortList": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Sort the accounts panel by `#accountManagerForClaude.autoSwitch.order#`, so the account that is used next is at the top. Choosing a sort in the panel overrides this."
         },
         "accountManagerForClaude.credentialsPath": {
           "type": "string",

@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+- **Auto-switch**: with `autoSwitch.enabled`, the extension switches to the next account by itself
+  when the active one runs out of a limit.
+  - The account whose weekly (7-day) limit resets soonest goes first, so capacity is used before
+    it is lost. `autoSwitch.order` also offers the soonest reset of any limit, the capacity that
+    would be lost soonest, the most usage left, and the panel's own order.
+  - Availability is confirmed with a fresh usage check right before the switch;
+    `autoSwitch.minAvailablePercent` sets how much of every limit an account must still have.
+  - An account that is used up, needs reauthorization, is in use in another window, or whose
+    switch fails for any other reason is skipped and the next one is tried. The skip only lasts
+    until the next check, which confirms the account again and takes it as soon as it qualifies;
+    the panel marks it **Skipped** meanwhile.
+  - Every saved account takes part by default and can be excluded from its **⋯** menu
+    (**No auto-switch** on the card), or with `Claude: Include or exclude an account in auto-switching`.
+  - The accounts panel sorts by the same order, next account first (`autoSwitch.sortList`), and
+    **Next account first (auto-switch order)** is a sort of its own.
+  - `Claude: Switch to the next account now (auto-switch)` runs one round on demand.
+
 ## 0.3.1
 
 First release of the Tursoft fork of
