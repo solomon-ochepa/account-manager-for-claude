@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.1
+
+- **Keep active** moved out of the **⋯** menu: it is now a star button beside **Switch** on every
+  card, secondary while off and green with a filled star while the account is held. The separate
+  **Kept active** badge is gone, since the button itself shows the state.
+
 ## 2.3.0
 
 - **An account can set its own hand-over limit.** **Set a hand-over limit…** on a card's **⋯**

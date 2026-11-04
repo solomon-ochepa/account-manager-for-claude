@@ -100,11 +100,11 @@ turns it off.
   spent and takes the next one in the queue, without waiting for the limit to be used up. The card
   shows **Out at 80%**, and the log says `"X" reached its 80% hand-over limit.` before naming the
   account it moved to. Leave the box empty to use the account until a limit is actually used up.
-- **Keep one account active to override it.** **Keep active (pause auto-switching)** on a card's
-  **⋯** menu holds that account: auto-switching takes it, then moves nowhere else — not even when
-  its limits run out, where it waits and says when the account is usable again. The card is marked
-  **Kept active**, the mark beats the account's own opt-out, its hand-over limit and the minimum,
-  only one account can carry it, and **Stop keeping active** hands the choice back.
+- **Keep one account active to override it.** The **star** button beside **Switch** on a card holds
+  that account: auto-switching takes it, then moves nowhere else — not even when its limits run
+  out, where it waits and says when the account is usable again. The star fills in and turns green
+  while the account is held, the mark beats the account's own opt-out, its hand-over limit and the
+  minimum, only one account can carry it, and clicking the star again hands the choice back.
 - **The nearest reset goes first.** Capacity that is not used before a limit resets is lost, so
   the account whose weekly (7-day) limit resets soonest is taken first. Only weekly dates count:
   the 5-hour window refills several times a day, so it says nothing about which account to spend

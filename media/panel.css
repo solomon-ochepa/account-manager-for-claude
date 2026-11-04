@@ -822,6 +822,34 @@ button:focus-visible {
   background: var(--vscode-button-hoverBackground);
 }
 
+/* Keep active sits beside Switch as a badge button: secondary while off, success
+   while the account is held. */
+.quick.keep {
+  width: auto;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: var(--vscode-button-secondaryForeground, var(--muted));
+  background: var(--vscode-button-secondaryBackground, color-mix(in srgb, var(--muted) 20%, transparent));
+  opacity: 1;
+}
+
+.quick.keep:hover {
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  background: var(--vscode-button-secondaryHoverBackground, color-mix(in srgb, var(--muted) 32%, transparent));
+}
+
+.quick.keep.on,
+.quick.keep.on:hover {
+  color: #ffffff;
+  background: var(--ok);
+}
+
+/* The star fills in once the account is held. */
+.quick.keep.on .ico {
+  fill: currentColor;
+}
+
 /* ---- drag & drop ---------------------------------------------------- */
 
 .grip {
