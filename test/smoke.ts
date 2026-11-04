@@ -35,6 +35,8 @@ import { noProposalReason, propose, rankAccounts, urgencyOf } from "../src/propo
 import {
   AutoSwitchAccount,
   AutoSwitchSkips,
+  busiestWindow,
+  reachedOwnLimit,
   switchOutPercentOf,
   weeklyHeadroomOf,
   availableNow,
@@ -1727,6 +1729,18 @@ function runAutoSwitchTests(): void {
       { now }
     ).action === "wait"
   );
+
+  // Telling the two cases apart decides what the panel asks before keeping an account
+  // active: raise the hand-over limit, or wait for a reset.
+  check("the busiest limit is the one that tripped the hand-over", busiestWindow(capped(80))?.kind === "session");
+  check("past its own limit, with nothing used up: raising it brings the account back", reachedOwnLimit(capped(80)));
+  check("inside its own limit: nothing to raise", !reachedOwnLimit(capped(90)));
+  check("no limit set: nothing to raise", !reachedOwnLimit(capped(undefined)));
+  check(
+    "a limit that is really used up is not a hand-over to raise",
+    !reachedOwnLimit(acc("spent", [w("session", 100, 1 * h)], { switchOutPercent: 50 }))
+  );
+  check("no usage reading: nothing to ask about", !reachedOwnLimit(acc("new", [], { switchOutPercent: 50 })));
 
   // An account marked to stay in use overrides the order until the mark comes off.
   const kept = (extra: Partial<AutoSwitchAccount> = {}) =>

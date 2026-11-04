@@ -1,7 +1,12 @@
 # Changelog
 
-## 2.3.3
+## 2.4.0
 
+- **Keeping an account active asks for a higher hand-over limit** when that account has already
+  reached its own: the prompt names the limit that tripped it and takes any value above the
+  current usage, and the account is only marked once the limit is raised. When the limit is
+  genuinely used up, raising it would change nothing, so it asks to confirm instead — kept active,
+  the account is held and waits for the reset.
 - The shield badge's tooltip leads with the limit itself (`Hand-over limit: 80%`), says what
   happens when it is reached, and where to change it. The **Keep active** star reads the same way:
   its state first, then what a click does.

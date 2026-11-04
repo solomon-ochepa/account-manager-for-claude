@@ -104,7 +104,9 @@ turns it off.
   that account: auto-switching takes it, then moves nowhere else — not even when its limits run
   out, where it waits and says when the account is usable again. The star fills in and turns green
   while the account is held, the mark beats the account's own opt-out, its hand-over limit and the
-  minimum, only one account can carry it, and clicking the star again hands the choice back.
+  minimum, only one account can carry it, and clicking the star again hands the choice back. An
+  account that has already reached its own hand-over limit asks for a higher one first, so holding
+  it is a deliberate choice rather than an argument with a setting.
 - **The nearest reset goes first.** Capacity that is not used before a limit resets is lost, so
   the account whose weekly (7-day) limit resets soonest is taken first. Only weekly dates count:
   the 5-hour window refills several times a day, so it says nothing about which account to spend
