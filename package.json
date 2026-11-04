@@ -2,7 +2,7 @@
   "name": "claude-auto-switch",
   "displayName": "Claude Auto Switch",
   "description": "Auto switch your Claude accounts; Claude Code uses the one whose limit resets soonest, with live usage limits.",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "publisher": "solomon-ochepa",
   "author": {
     "name": "Solomon Ochepa",
@@ -316,6 +316,12 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "Save a Claude Code login as an account as soon as it appears, so logging in is all you have to do. When off, the panel offers a **Save** button instead."
+        },
+        "claudeAutoSwitch.manualSwitchHoldMinutes": {
+          "type": "number",
+          "default": 60,
+          "minimum": 0,
+          "markdownDescription": "How long (in minutes) an account you switch to by hand is held before auto-switching may move again. The hold ends early if the account runs out of a limit. `0` turns it off, so the next round can switch straight back; the ★ button holds an account indefinitely."
         },
         "claudeAutoSwitch.autoReloadAfterSwitch": {
             "type": "boolean",

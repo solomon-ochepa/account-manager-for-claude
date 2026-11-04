@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.1.0
+
+Switching by hand meant something for about four minutes: the next round re-applied the order and
+moved back. Two fixes, so a deliberate choice is respected.
+
+- **A switch you make by hand holds the account.** For `manualSwitchHoldMinutes` (60 by default,
+  `0` to turn it off) auto-switching leaves it alone; the card shows the time left, and the log
+  says it is holding. The hold ends early if the account runs out of a limit, and the mark is
+  saved before the switch so it survives the window reload. **Keep active** still outranks it.
+- **Fixed: an excluded account could not be used at all.** Opting an account out marked it
+  unusable, so the automation handed over the moment it became active — by hand or otherwise. It
+  now keeps the session until one of its limits (or its own hand-over limit) is reached, which is
+  what "do not pick me" should mean. It still hands over once it is spent, so nobody is stranded.
+- The ★ **Keep active** button leads the card's button row, with **Switch** beside it.
+
 ## 3.0.0
 
 The automation decides which account to use, so the machinery for asking a human to decide is gone.

@@ -49,6 +49,8 @@ interface ViewAccount {
   keepActive: boolean;
   /** Percent at which auto-switching hands this account over; absent = only when used up. */
   switchOutPercent?: number;
+  /** Until when a switch made by hand holds this account (epoch ms). */
+  manualHoldUntil?: number;
   /** Why auto-switching passed this account over in the current round. */
   autoSwitchSkip?: string;
   /** Which service the account belongs to; only Claude for now. */
@@ -316,6 +318,10 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
           autoSwitch: p.autoSwitch ?? true,
           keepActive: Boolean(p.keepActive),
           switchOutPercent: p.switchOutPercent,
+          manualHoldUntil:
+            p.id === activeId && p.manualSwitchAt && this.autoSwitch.manualHoldMs > 0
+              ? p.manualSwitchAt + this.autoSwitch.manualHoldMs
+              : undefined,
           autoSwitchSkip: this.autoSwitchSkip(p.id),
           provider: "claude",
         };

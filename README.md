@@ -83,6 +83,13 @@ used-up limit resets, at startup, and on demand via
 - **Availability is confirmed, not assumed.** The chosen account's usage is fetched again right
   before the switch, and `autoSwitch.minAvailablePercent` sets how much of every limit it must
   still have.
+- **A switch you make by hand sticks.** Switching to an account yourself holds it for
+  `manualSwitchHoldMinutes` (60 by default) before the automation may move again, so your choice
+  is not undone on the next round; the card shows the time left. The hold ends early if the
+  account runs out of a limit, `0` turns it off, and the ★ button holds an account indefinitely.
+- **An excluded account keeps the session.** Opting an account out means "do not pick me", not
+  "take me away while I am working": it stays active until one of its limits (or its own
+  hand-over limit) is reached.
 - **A skipped account comes back.** One that turns out to be used up, whose login expired, that is
   in use in another window, or whose switch fails for any other reason is passed over and the next
   is tried. The skip lasts only until the next round, which confirms the account again and takes it
@@ -97,9 +104,9 @@ Each card's buttons and **⋯** menu decide how that account takes part.
 
 | Control | Where | What it does |
 | --- | --- | --- |
-| **Keep active** | ★ button beside **Switch** | Holds this account: automation takes it and moves nowhere else, waiting rather than handing over when its limits run out. The star fills in and turns green. Beats the account's own opt-out, its hand-over limit and the minimum. One account at a time; click again to release. |
+| **Keep active** | ★ button, first in the card's row | Holds this account: automation takes it and moves nowhere else, waiting rather than handing over when its limits run out. The star fills in and turns green. Beats the account's own opt-out, its hand-over limit and the minimum. One account at a time; click again to release. |
 | **Hand-over limit** | **Set a hand-over limit…** in the **⋯** menu | A percent of your own: once any limit of this account reaches it, automation treats the account as spent and takes the next in the queue, without waiting for the limit to be used up. The card carries a shield badge with the percent. |
-| **Exclude** | **Exclude from auto-switching** in the **⋯** menu | Never switched to automatically; marked **No auto-switch**. Manual **Switch** still works. |
+| **Exclude** | **Exclude from auto-switching** in the **⋯** menu | Never switched to automatically, and never taken away while it can still be used; marked **No auto-switch**. |
 
 Holding an account that has already reached its own hand-over limit asks for a higher limit first,
 so it stays a deliberate choice rather than an argument with a setting. If that limit is genuinely
@@ -127,7 +134,8 @@ overrides that, and `autoSwitch.sortList` turns it off.
 - **Status bar** with the active account and its usage. **Notifications** when a used-up limit is
   available again, with a **Switch** button.
 - **Switch** on a card, the status bar, or `Claude: Switch account` moves accounts by hand at any
-  time; **Undo last switch** puts the previous one back.
+  time, and holds the account you picked (see `manualSwitchHoldMinutes`); **Undo last switch** puts
+  the previous one back.
 
 ## Usage analytics
 
@@ -238,6 +246,7 @@ All settings start with `claudeAutoSwitch.`, and the Settings editor groups them
 | Setting | Default | Description |
 | --- | --- | --- |
 | `autoSaveNewAccounts` | `true` | Save a Claude Code login as an account as soon as it appears |
+| `manualSwitchHoldMinutes` | `60` | Minutes an account you switch to by hand is held before auto-switching may move again (`0` = no hold) |
 | `autoReloadAfterSwitch` | `false` | Reload the window automatically after switching |
 
 ### Usage history

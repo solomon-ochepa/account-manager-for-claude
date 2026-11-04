@@ -157,6 +157,25 @@ export class AccountStore {
     }
   }
 
+  /**
+   * Records that the user switched to this account by hand, which holds it against the
+   * next auto-switch round. Only the newest hand-picked account carries the mark.
+   */
+  async setManualSwitchAt(id: string, at: number | undefined): Promise<void> {
+    const profiles = this.profiles;
+    let changed = false;
+    for (const p of profiles) {
+      const next = p.id === id ? at : undefined;
+      if (p.manualSwitchAt !== next) {
+        p.manualSwitchAt = next;
+        changed = true;
+      }
+    }
+    if (changed) {
+      await this.saveProfiles(profiles);
+    }
+  }
+
   /** The account marked to stay in use, if any. */
   keptActive(): AccountProfile | undefined {
     return this.profiles.find((p) => p.keepActive);

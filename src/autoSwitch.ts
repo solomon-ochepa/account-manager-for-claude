@@ -32,6 +32,8 @@ export interface AutoSwitchAccount extends LimitAccount {
    * until the mark is taken off. One account at a time.
    */
   keepActive?: boolean;
+  /** When the user switched to this account by hand (epoch ms), which holds it for a while. */
+  manualSwitchAt?: number;
   /**
    * The account's own hand-over limit: once any of its limits reaches this percent,
    * auto-switching treats it as spent and takes the next account in the queue. Unset
@@ -64,6 +66,8 @@ export interface AutoSwitchOptions {
   skipped?: ReadonlyMap<string, AutoSwitchSkip>;
   /** Rank the active account along with the others (to see whether it is still the best one). */
   includeActive?: boolean;
+  /** How long a switch made by hand holds the account; 0 = no hold. */
+  manualHoldMs?: number;
 }
 
 /** A candidate that was passed over, kept until `until` so the next check reconsiders it. */
@@ -366,6 +370,29 @@ export function planAutoSwitch(
   }
 
   const active = accounts.find((a) => a.isActive);
+
+  // A choice made by hand holds for a while, so the next round does not undo it. The
+  // account still hands over once it cannot be used.
+  const manualHoldMs = options.manualHoldMs ?? 0;
+  const manualHoldUntil = active?.manualSwitchAt ? active.manualSwitchAt + manualHoldMs : 0;
+  if (active && manualHoldMs > 0 && manualHoldUntil > now && availableNow(active, min)) {
+    return {
+      action: "stay",
+      ranked: [],
+      reason: `"${active.label}" was switched to by hand; holding it for another ${fmtWait(manualHoldUntil - now)}.`,
+    };
+  }
+
+  // Opting an account out means "do not pick me", not "take me away while I am working":
+  // it keeps the session until one of its limits (or its own hand-over limit) is reached.
+  if (active && !takesPartInAutoSwitch(active) && availableNow(active, min)) {
+    return {
+      action: "stay",
+      ranked: [],
+      reason: `"${active.label}" is excluded from auto-switching and can still be used.`,
+    };
+  }
+
   const activeUsable = Boolean(active && takesPartInAutoSwitch(active) && availableNow(active, min));
 
   // Failover only: the active account keeps the session until one of its limits runs out.

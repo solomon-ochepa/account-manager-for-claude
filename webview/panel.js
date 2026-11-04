@@ -1,4 +1,5 @@
 import { AVATAR_COLORS, avatarDescription, avatarState, starburstGlyph } from "../src/avatar";
+import { fmtWait } from "../src/limits";
 import { nameTone, nameToneDescription, resetTone, toneOfPercent } from "../src/tone";
 import {
   extraFilterLabels,
@@ -48,6 +49,7 @@ import {
     blank: '',
     info: '<circle cx="8" cy="8" r="6"/><path d="M8 7.3V11M8 4.9v.2"/>',
     signIn: '<path d="M9.5 2.5h3v11h-3M2.5 8h7M7 5.5 9.5 8 7 10.5"/>',
+    clock: '<circle cx="8" cy="8" r="5.6"/><path d="M8 4.8V8l2.3 1.5"/>',
     shield: '<path d="M8 2.2l4.5 1.6v4c0 2.6-1.8 4.6-4.5 5.9-2.7-1.3-4.5-3.3-4.5-5.9v-4z"/>',
     star: '<path d="M8 2.6l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 11.3l-3.4 1.8.7-3.8L2.5 6.6l3.8-.5z"/>',
     starOn: '<path d="M8 2.6l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 11.3l-3.4 1.8.7-3.8L2.5 6.6l3.8-.5z" fill="currentColor"/>',
@@ -315,6 +317,16 @@ import {
       plan.title = `Plan: ${acc.subscriptionType}`;
       head.appendChild(plan);
     }
+    if (acc.manualHoldUntil && acc.manualHoldUntil > Date.now()) {
+      const held = el("span", "badge muted icon-badge");
+      held.append(icon("clock"), el("span", "", fmtWait(acc.manualHoldUntil - Date.now())));
+      held.title = [
+        "Switched to by hand",
+        "Auto-switching leaves this account alone until the hold runs out.",
+        "The hold ends early if a limit runs out.",
+      ].join("\n");
+      head.appendChild(held);
+    }
     if (acc.switchOutPercent) {
       const out = el("span", "badge muted icon-badge");
       out.append(icon("shield"), el("span", "", acc.switchOutPercent + "%"));
@@ -412,15 +424,7 @@ import {
   /** Quick actions shown left of the card's "..." menu: switch (inactive accounts only) and refresh. */
   function quickButtons(acc) {
     const buttons = [];
-    if (acc.needsReauthorization) {
-      // Switching would fail with a dead login; offer the fix instead.
-      buttons.push(
-        iconButton("key", "Login expired: reauthorize this account", () => post("reauthorize", acc.id), "quick reauth")
-      );
-    } else if (!acc.isActive) {
-      buttons.push(iconButton("swap", "Switch to this account", () => post("switch", acc.id), "quick switch"));
-    }
-    // Beside Switch, because it is the other answer to "which account runs next".
+    // The two answers to "which account runs next" sit together: hold this one, or take it.
     const keep = iconButton(
       acc.keepActive ? "starOn" : "star",
       acc.keepActive
@@ -431,6 +435,14 @@ import {
     );
     keep.setAttribute("aria-pressed", String(Boolean(acc.keepActive)));
     buttons.push(keep);
+    if (acc.needsReauthorization) {
+      // Switching would fail with a dead login; offer the fix instead.
+      buttons.push(
+        iconButton("key", "Login expired: reauthorize this account", () => post("reauthorize", acc.id), "quick reauth")
+      );
+    } else if (!acc.isActive) {
+      buttons.push(iconButton("swap", "Switch to this account", () => post("switch", acc.id), "quick switch"));
+    }
     buttons.push(iconButton("refresh", "Refresh usage", () => post("refresh", acc.id), "quick refresh"));
     return buttons;
   }

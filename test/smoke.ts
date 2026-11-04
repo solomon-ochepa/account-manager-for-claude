@@ -1625,12 +1625,6 @@ function runAutoSwitchTests(): void {
     planAutoSwitch([acc("first", [w("weekly_all", 10, 5 * h)], { isActive: true }), accounts[1]], { now }).action ===
       "stay"
   );
-  check(
-    "an active account that opted out is replaced, not kept",
-    planAutoSwitch([acc("out", [w("weekly_all", 10, 1 * h)], { isActive: true, autoSwitch: false }), accounts[1]], {
-      now,
-    }).target?.id === "late"
-  );
 
   const waiting = planAutoSwitch([accounts[0], accounts[4]], { now });
   check(
@@ -1727,6 +1721,57 @@ function runAutoSwitchTests(): void {
     !reachedOwnLimit(acc("spent", [w("session", 100, 1 * h)], { switchOutPercent: 50 }))
   );
   check("no usage reading: nothing to ask about", !reachedOwnLimit(acc("new", [], { switchOutPercent: 50 })));
+
+  // A switch made by hand holds the account for a while, and an account that opted out
+  // keeps the session instead of being taken away from the user.
+  const HOLD = 60 * 60_000;
+  const picked = (at: number, extra: Partial<AutoSwitchAccount> = {}) =>
+    acc("picked", [w("session", 20, 4 * h), w("weekly_all", 20, 400 * h)], {
+      isActive: true,
+      manualSwitchAt: at,
+      ...extra,
+    });
+  const held = planAutoSwitch([picked(now - 10 * 60_000), accounts[2]], { now, manualHoldMs: HOLD });
+  check(
+    "a hand-picked account is held, even though the order wants another",
+    held.action === "stay" && held.reason === '"picked" was switched to by hand; holding it for another 50 min.'
+  );
+  check(
+    "once the hold runs out the order decides again",
+    planAutoSwitch([picked(now - 2 * h), accounts[2]], { now, manualHoldMs: HOLD }).action === "switch"
+  );
+  check(
+    "a hold of zero means no hold",
+    planAutoSwitch([picked(now), accounts[2]], { now, manualHoldMs: 0 }).action === "switch"
+  );
+  check(
+    "a hold does not survive the account running out",
+    planAutoSwitch(
+      [acc("spent", [w("session", 100, 2 * h)], { isActive: true, manualSwitchAt: now }), accounts[2]],
+      { now, manualHoldMs: HOLD }
+    ).action === "switch"
+  );
+  check(
+    "keeping an account active outranks a hand-picked hold",
+    planAutoSwitch([picked(now, { keepActive: true }), accounts[2]], { now, manualHoldMs: HOLD }).reason ===
+      '"picked" is kept active, so auto-switching is paused.'
+  );
+
+  const optedOut = planAutoSwitch(
+    [acc("mine", [w("session", 30, 4 * h), w("weekly_all", 30, 400 * h)], { isActive: true, autoSwitch: false }), accounts[2]],
+    { now }
+  );
+  check(
+    "an account that opted out keeps the session while it can be used",
+    optedOut.action === "stay" && optedOut.reason === '"mine" is excluded from auto-switching and can still be used.'
+  );
+  check(
+    "it hands over once it cannot be used, so nobody is stranded on a spent account",
+    planAutoSwitch(
+      [acc("mine", [w("session", 100, 2 * h)], { isActive: true, autoSwitch: false }), accounts[2]],
+      { now }
+    ).action === "switch"
+  );
 
   // An account marked to stay in use overrides the order until the mark comes off.
   const kept = (extra: Partial<AutoSwitchAccount> = {}) =>

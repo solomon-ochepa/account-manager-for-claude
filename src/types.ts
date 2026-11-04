@@ -57,6 +57,8 @@ export interface AccountProfile {
   keepActive?: boolean;
   /** Percent (1-100) at which auto-switching hands this account over; unset = only when used up. */
   switchOutPercent?: number;
+  /** When the user last switched to this account by hand (epoch ms); holds it for a while. */
+  manualSwitchAt?: number;
   /** last read usage snapshot (cached for fast rendering) */
   lastUsage?: UsageSnapshot;
 }

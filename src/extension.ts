@@ -660,6 +660,9 @@ export function activate(context: vscode.ExtensionContext): void {
       if (id && !(await confirmSwitch(targetId))) {
         return;
       }
+      // Marked before the switch: it may reload the window, and the mark has to be
+      // saved by then for the hold to survive the restart.
+      await store.setManualSwitchAt(targetId, Date.now());
       let res = await switchService.switchTo(targetId);
       if (!res.ok && res.reauthProfileId) {
         const completed = await completeProfileReauthorization(res.reauthProfileId, true);
@@ -670,6 +673,7 @@ export function activate(context: vscode.ExtensionContext): void {
         }
       }
       if (!res.ok) {
+        await store.setManualSwitchAt(targetId, undefined); // nothing to hold
         if (res.reauthProfileId) {
           const choice = await vscode.window.showWarningMessage(
             `${res.message} Reauthorize this profile in an isolated Claude login so another saved account cannot overwrite it.`,
