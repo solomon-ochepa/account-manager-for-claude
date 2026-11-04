@@ -51,8 +51,9 @@ import {
     info: '<circle cx="8" cy="8" r="6"/><path d="M8 7.3V11M8 4.9v.2"/>',
     warning: '<path d="M8 2.3 14.2 13H1.8z"/><path d="M8 6.4v3.2M8 11.2v.2"/>',
     signIn: '<path d="M9.5 2.5h3v11h-3M2.5 8h7M7 5.5 9.5 8 7 10.5"/>',
+    star: '<path d="M8 2.6l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 11.3l-3.4 1.8.7-3.8L2.5 6.6l3.8-.5z"/>',
+    starOn: '<path d="M8 2.6l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 11.3l-3.4 1.8.7-3.8L2.5 6.6l3.8-.5z" fill="currentColor"/>',
     gauge: '<path d="M2.5 11.5a5.5 5.5 0 1 1 11 0"/><path d="M8 11.5 11 6.8"/>',
-    pin: '<path d="M6 2.5h4l-.6 4 2.1 2.2H4.5L6.6 6.5z"/><path d="M8 10.7V13.5"/>',
     autoOn: '<path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13"/>',
     autoOff: '<path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13"/><path d="M2 14 14 2"/>',
   };
@@ -318,11 +319,6 @@ import {
       plan.title = `Plan: ${acc.subscriptionType}`;
       head.appendChild(plan);
     }
-    if (acc.keepActive) {
-      const kept = el("span", "badge muted", "Kept active");
-      kept.title = "Auto-switching is paused on this account until you stop keeping it active.";
-      head.appendChild(kept);
-    }
     if (acc.switchOutPercent) {
       const out = el("span", "badge muted", "Out at " + acc.switchOutPercent + "%");
       out.title =
@@ -426,6 +422,17 @@ import {
     } else if (!acc.isActive) {
       buttons.push(iconButton("swap", "Switch to this account", () => post("switch", acc.id), "quick switch"));
     }
+    // Beside Switch, because it is the other answer to "which account runs next".
+    const keep = iconButton(
+      acc.keepActive ? "starOn" : "star",
+      acc.keepActive
+        ? "Kept active: auto-switching is paused on this account. Click to release it."
+        : "Keep this account active and pause auto-switching",
+      () => post("toggleKeepActive", acc.id),
+      "quick keep" + (acc.keepActive ? " on" : "")
+    );
+    keep.setAttribute("aria-pressed", String(Boolean(acc.keepActive)));
+    buttons.push(keep);
     buttons.push(iconButton("refresh", "Refresh usage", () => post("refresh", acc.id), "quick refresh"));
     return buttons;
   }
@@ -453,11 +460,6 @@ import {
       icon: "gauge",
       label: acc.switchOutPercent ? `Hand-over limit: ${acc.switchOutPercent}%…` : "Set a hand-over limit…",
       run: act("setSwitchOutLimit"),
-    });
-    items.push({
-      icon: "pin",
-      label: acc.keepActive ? "Stop keeping active" : "Keep active (pause auto-switching)",
-      run: act("toggleKeepActive"),
     });
     items.push({
       icon: acc.autoSwitch === false ? "autoOn" : "autoOff",
