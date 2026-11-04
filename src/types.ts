@@ -51,6 +51,8 @@ export interface AccountProfile {
   deadRefreshTokenHash?: string;
   addedAt: number;
   order: number;
+  /** false = opted out of auto-switching; every account takes part by default. */
+  autoSwitch?: boolean;
   /** last read usage snapshot (cached for fast rendering) */
   lastUsage?: UsageSnapshot;
 }

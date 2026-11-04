@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
 import { AccountStore } from "../accountStore";
+import { needsReauthorization } from "../accountHealth";
+import { AutoSwitchSettings, DEFAULT_AUTO_SWITCH_SETTINGS } from "../autoSwitchService";
 import { CurrentAccountState } from "../credentialSync";
-import { hasUsableOAuthCreds } from "../credentialValidation";
 import { identityLabel } from "../identity";
 import { ListingSettings, normalizeListing } from "../listing";
-import { requiresProfileReauthorization } from "../oauth";
 import { copyToClipboard } from "./clipboard";
 
 /** The Claude Code login of this window, when it is not one of the saved profiles. */
@@ -18,12 +18,11 @@ interface CurrentSessionView {
 
 /** Links the About sheet may open; anything else from the webview is ignored. */
 const ABOUT_LINKS = new Set([
-  "https://tursoft.net",
-  "mailto:tursoft@gmail.com",
+  "https://github.com/solomon-ochepa",
+  "https://github.com/solomon-ochepa/account-manager-for-claude",
+  "https://github.com/solomon-ochepa/account-manager-for-claude/issues",
   "https://github.com/tursoft/account-manager-for-claude",
   "https://github.com/KrzysztofZander/claude-account-switcher",
-  // The sidebar banner (see the bjf-* markup below).
-  "https://bestjobfinder.net/?utm_source=vscode-account-manager-for-claude&utm_medium=extension&utm_campaign=sidebar",
 ]);
 
 interface ViewWindow {
@@ -44,17 +43,23 @@ interface ViewAccount {
   fetchedAt?: number;
   retryAfter?: number;
   needsReauthorization: boolean;
+  /** false = excluded from auto-switching. */
+  autoSwitch: boolean;
+  /** Why auto-switching passed this account over in the current round. */
+  autoSwitchSkip?: string;
   /** Which service the account belongs to; only Claude for now. */
   provider: "claude";
 }
 
 /** Activity bar panel: list of accounts with usage limits and actions. */
 export class AccountsViewProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = "accountManagerForClaude.accountsView";
+  public static readonly viewType = "claudeAutoSwitch.accountsView";
   private view?: vscode.WebviewView;
   private currentSession?: CurrentSessionView;
   private currentWindows?: ViewWindow[];
   private busy = { ids: [] as string[], all: false, session: false };
+  private autoSwitch: AutoSwitchSettings = DEFAULT_AUTO_SWITCH_SETTINGS;
+  private autoSwitchSkip: (id: string) => string | undefined = () => undefined;
   private aboutPending = false;
 
   constructor(
@@ -64,7 +69,7 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
     private readonly memento: vscode.Memento
   ) {}
 
-  private static readonly VIEW_SETTINGS_KEY = "accountManagerForClaude.viewSettings";
+  private static readonly VIEW_SETTINGS_KEY = "claudeAutoSwitch.viewSettings";
   /** Bumped when settings change outside the panel (a restore), so the panel adopts them. */
   private viewSettingsRev = 0;
   /** The panel's search text; kept in memory only (it is not a saved setting). */
@@ -84,6 +89,13 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
   async applyViewSettings(settings: Record<string, unknown>): Promise<void> {
     await this.memento.update(AccountsViewProvider.VIEW_SETTINGS_KEY, settings);
     this.viewSettingsRev++;
+    this.refresh();
+  }
+
+  /** The auto-switch settings the panel shows (and sorts by), and why accounts were passed over. */
+  setAutoSwitchState(settings: AutoSwitchSettings, skipReason: (id: string) => string | undefined): void {
+    this.autoSwitch = settings;
+    this.autoSwitchSkip = skipReason;
     this.refresh();
   }
 
@@ -165,19 +177,19 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
           break;
         }
         case "loginCurrent":
-          void vscode.commands.executeCommand("accountManagerForClaude.login");
+          void vscode.commands.executeCommand("claudeAutoSwitch.login");
           break;
         case "enableTracking":
           void vscode.workspace
-            .getConfiguration("accountManagerForClaude")
+            .getConfiguration("claudeAutoSwitch")
             .update("usageHistory.enabled", true, vscode.ConfigurationTarget.Global)
             .then(() => this.refresh());
           break;
         case "backup":
-          void vscode.commands.executeCommand("accountManagerForClaude.backupAccounts");
+          void vscode.commands.executeCommand("claudeAutoSwitch.backupAccounts");
           break;
         case "restore":
-          void vscode.commands.executeCommand("accountManagerForClaude.restoreAccounts");
+          void vscode.commands.executeCommand("claudeAutoSwitch.restoreAccounts");
           break;
         case "openLink":
           if (msg.url && ABOUT_LINKS.has(msg.url)) {
@@ -212,44 +224,52 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
           }
           break;
         case "switch":
-          if (msg.id) void vscode.commands.executeCommand("accountManagerForClaude.switchAccount", msg.id);
+          if (msg.id) void vscode.commands.executeCommand("claudeAutoSwitch.switchAccount", msg.id);
           break;
         case "openWindow":
           if (msg.id) {
-            void vscode.commands.executeCommand("accountManagerForClaude.openIndependentWindow", msg.id);
+            void vscode.commands.executeCommand("claudeAutoSwitch.openIndependentWindow", msg.id);
           }
           break;
         case "refresh":
-          void vscode.commands.executeCommand("accountManagerForClaude.refreshUsage", msg.id);
+          void vscode.commands.executeCommand("claudeAutoSwitch.refreshUsage", msg.id);
           break;
         case "refreshAll":
-          void vscode.commands.executeCommand("accountManagerForClaude.refreshAll");
+          void vscode.commands.executeCommand("claudeAutoSwitch.refreshAll");
           break;
         case "sayHi":
-          if (msg.id) void vscode.commands.executeCommand("accountManagerForClaude.sayHi", msg.id);
+          if (msg.id) void vscode.commands.executeCommand("claudeAutoSwitch.sayHi", msg.id);
           break;
         case "sayHiAll":
-          void vscode.commands.executeCommand("accountManagerForClaude.sayHi");
+          void vscode.commands.executeCommand("claudeAutoSwitch.sayHi");
           break;
         case "add":
-          void vscode.commands.executeCommand("accountManagerForClaude.addCurrentAccount");
+          void vscode.commands.executeCommand("claudeAutoSwitch.addCurrentAccount");
           break;
         case "login":
-          void vscode.commands.executeCommand("accountManagerForClaude.addAccount");
+          void vscode.commands.executeCommand("claudeAutoSwitch.addAccount");
           break;
         case "reauthorize":
           if (msg.id) {
-            void vscode.commands.executeCommand("accountManagerForClaude.reauthorizeProfile", msg.id);
+            void vscode.commands.executeCommand("claudeAutoSwitch.reauthorizeProfile", msg.id);
           }
           break;
         case "remove":
-          if (msg.id) void vscode.commands.executeCommand("accountManagerForClaude.removeAccount", msg.id);
+          if (msg.id) void vscode.commands.executeCommand("claudeAutoSwitch.removeAccount", msg.id);
           break;
         case "rename":
-          if (msg.id) void vscode.commands.executeCommand("accountManagerForClaude.renameAccount", msg.id);
+          if (msg.id) void vscode.commands.executeCommand("claudeAutoSwitch.renameAccount", msg.id);
           break;
         case "undo":
-          void vscode.commands.executeCommand("accountManagerForClaude.undoSwitch");
+          void vscode.commands.executeCommand("claudeAutoSwitch.undoSwitch");
+          break;
+        case "toggleAutoSwitch":
+          if (msg.id) {
+            void vscode.commands.executeCommand("claudeAutoSwitch.toggleAutoSwitch", msg.id);
+          }
+          break;
+        case "autoSwitchNow":
+          void vscode.commands.executeCommand("claudeAutoSwitch.autoSwitchNow");
           break;
       }
       }
@@ -266,27 +286,26 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
     const activeId = this.store.getActiveId();
     const profiles = this.store.list();
     const warnThreshold = vscode.workspace
-      .getConfiguration("accountManagerForClaude")
+      .getConfiguration("claudeAutoSwitch")
       .get<number>("warnThresholdPercent", 80);
 
     void Promise.all(
       profiles.map(async (p): Promise<ViewAccount> => {
         const creds = await this.store.getCreds(p.id);
         const error = p.lastUsage?.error;
-        const needsReauthorization =
-          !hasUsableOAuthCreds(creds) ||
-          this.store.isRefreshTokenDead(p.id, creds?.refreshToken) ||
-          requiresProfileReauthorization(error);
+        const expired = needsReauthorization(this.store, p, creds);
         return {
           id: p.id,
           label: p.label,
           subscriptionType: p.subscriptionType,
           isActive: p.id === activeId,
           windows: p.lastUsage?.windows ?? [],
-          error: displayUsageError(error, needsReauthorization),
+          error: displayUsageError(error, expired),
           fetchedAt: p.lastUsage?.fetchedAt,
           retryAfter: p.lastUsage?.retryAfter,
-          needsReauthorization,
+          needsReauthorization: expired,
+          autoSwitch: p.autoSwitch ?? true,
+          autoSwitchSkip: this.autoSwitchSkip(p.id),
           provider: "claude",
         };
       })
@@ -302,8 +321,9 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
         version: this.version,
         busy: this.busy,
         viewSettings: this.getViewSettings(),
+        autoSwitch: this.autoSwitch,
         trackingEnabled: vscode.workspace
-          .getConfiguration("accountManagerForClaude")
+          .getConfiguration("claudeAutoSwitch")
           .get<boolean>("usageHistory.enabled", false),
         viewSettingsRev: this.viewSettingsRev,
       });
@@ -321,9 +341,6 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
     const iconUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, "media", "icon.png")
     );
-    const bjfLogoUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, "media", "bjf-logo.png")
-    );
     const csp = [
       "default-src 'none'",
       `img-src ${webview.cspSource}`,
@@ -339,7 +356,7 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
   <meta http-equiv="Content-Security-Policy" content="${csp}" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="${styleUri}" rel="stylesheet" />
-  <title>Claude Account Manager</title>
+  <title>Claude Auto Switch</title>
 </head>
 <body>
   <div id="filters" class="hidden">
@@ -392,44 +409,29 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
     </span>
   </div>
   <div id="proposal" class="proposal hidden" role="status" aria-live="polite"></div>
-  <div class="bjf-wrap">
-    <a class="bjf-banner" id="bjfBanner" href="https://bestjobfinder.net/?utm_source=vscode-account-manager-for-claude&amp;utm_medium=extension&amp;utm_campaign=sidebar" data-link="https://bestjobfinder.net/?utm_source=vscode-account-manager-for-claude&amp;utm_medium=extension&amp;utm_campaign=sidebar" title="Open bestjobfinder.net">
-      <span class="bjf-ad-label">AD</span>
-      <span class="bjf-row">
-        <img class="bjf-logo" src="${bjfLogoUri}" alt="" />
-        <span class="bjf-wordmark">BestJobFinder</span>
-        <span class="bjf-pipe" aria-hidden="true"></span>
-        <span class="bjf-slogan">Your <span class="ai">AI copilot</span> in Job search!</span>
-      </span>
-      <span class="bjf-cta">
-        Try Now
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-      </span>
-    </a>
-  </div>
   <div id="menu" class="hidden" role="menu"></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="about" class="hidden" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
     <div class="about-card">
       <button id="aboutClose" class="icon-btn about-close" title="Close" aria-label="Close"></button>
       <img class="about-logo" src="${iconUri}" alt="" />
-      <h2 id="aboutTitle">Account Manager for Claude</h2>
+      <h2 id="aboutTitle">Claude Auto Switch</h2>
       <p class="about-version">Version <span id="aboutVersion"></span></p>
       <p class="about-desc">Quickly switch between Claude accounts in Claude Code, with live usage limits.</p>
       <dl class="about-meta">
         <dt>Author</dt>
-        <dd>Muhammet Turşak</dd>
-        <dt>Email</dt>
-        <dd><a href="#" data-link="mailto:tursoft@gmail.com">tursoft@gmail.com</a></dd>
-        <dt>Website</dt>
-        <dd><a href="#" data-link="https://tursoft.net">tursoft.net</a></dd>
+        <dd><a href="#" data-link="https://github.com/solomon-ochepa">Solomon Ochepa</a></dd>
         <dt>Source</dt>
-        <dd><a href="#" data-link="https://github.com/tursoft/account-manager-for-claude">tursoft/account-manager-for-claude</a></dd>
+        <dd><a href="#" data-link="https://github.com/solomon-ochepa/account-manager-for-claude">solomon-ochepa/account-manager-for-claude</a></dd>
+        <dt>Issues</dt>
+        <dd><a href="#" data-link="https://github.com/solomon-ochepa/account-manager-for-claude/issues">Report a problem</a></dd>
       </dl>
       <p class="about-fork">
         Forked from
+        <a href="#" data-link="https://github.com/tursoft/account-manager-for-claude">tursoft/account-manager-for-claude</a>
+        by Muhammet Tursak, itself a fork of
         <a href="#" data-link="https://github.com/KrzysztofZander/claude-account-switcher">KrzysztofZander/claude-account-switcher</a>
-        by Krzysztof Zander. Thanks for the original work!
+        by Krzysztof Zander. Thanks for the work this builds on!
       </p>
       <p class="about-license">MIT License</p>
     </div>

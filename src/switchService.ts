@@ -167,7 +167,7 @@ export class SwitchService {
   /** Reload the window automatically or after confirmation (per setting). */
   private async maybeReload(context: string): Promise<void> {
     const auto = vscode.workspace
-      .getConfiguration("accountManagerForClaude")
+      .getConfiguration("claudeAutoSwitch")
       .get<boolean>("autoReloadAfterSwitch", false);
 
     if (auto) {

@@ -1,3 +1,10 @@
+import {
+  AutoSwitchOrder,
+  compareByOrder,
+  DEFAULT_AUTO_SWITCH_ORDER,
+  takesPartInAutoSwitch,
+} from "./autoSwitch";
+
 /**
  * Sorting and filtering of the account list, shared by the accounts panel and the
  * availability calendar so both behave the same. Plain functions over plain objects:
@@ -5,7 +12,15 @@
  */
 
 export type LimitFilter = "all" | "available" | "limited";
-export type SortKey = "custom" | "available" | "remaining" | "reset" | "resetFable" | "plan" | "name";
+export type SortKey =
+  | "custom"
+  | "autoSwitch"
+  | "available"
+  | "remaining"
+  | "reset"
+  | "resetFable"
+  | "plan"
+  | "name";
 
 /** One usage limit of an account, as the views receive it. */
 export interface ListWindow {
@@ -21,6 +36,10 @@ export interface ListAccount {
   label: string;
   subscriptionType?: string;
   isActive?: boolean;
+  /** false = opted out of auto-switching. */
+  autoSwitch?: boolean;
+  /** true when the saved login expired, so the account cannot be used. */
+  needsReauthorization?: boolean;
   windows: ListWindow[];
 }
 
@@ -45,6 +64,7 @@ export const DEFAULT_LISTING: ListingSettings = {
 
 export const SORTS: { key: SortKey; label: string }[] = [
   { key: "custom", label: "Custom order (drag to reorder)" },
+  { key: "autoSwitch", label: "Next account first (auto-switch order)" },
   { key: "available", label: "Available first, then soonest available" },
   { key: "remaining", label: "Most usage left first" },
   { key: "reset", label: "Resetting soonest first" },
@@ -158,14 +178,28 @@ export function matchesListing(acc: ListAccount, s: ListingSettings): boolean {
  * Orders `list` by `sort`; ties (and the "custom" sort) keep the user's order, given
  * as `order` = account id -> position in the full, user-ordered list.
  */
-export function sortAccounts<T extends ListAccount>(list: T[], order: Map<string, number>, sort: SortKey): T[] {
+export function sortAccounts<T extends ListAccount>(
+  list: T[],
+  order: Map<string, number>,
+  sort: SortKey,
+  options: { autoSwitchOrder?: AutoSwitchOrder; now?: number } = {}
+): T[] {
   if (sort === "custom") return list;
   const byOrder = (a: T, b: T) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0);
   const rank = (x: ListAccount) => {
     const state = limitState(x);
     return state === "available" ? 0 : state === "unknown" ? 1 : 2;
   };
+  const now = options.now ?? Date.now();
+  const byAutoSwitch = compareByOrder(options.autoSwitchOrder ?? DEFAULT_AUTO_SWITCH_ORDER, now);
   const cmp: Record<Exclude<SortKey, "custom">, (a: T, b: T) => number> = {
+    // The account auto-switching would take next comes first: accounts it can take at
+    // all (available, opted in), in its own order; then the rest.
+    autoSwitch: (a, b) => {
+      const takeable = (x: T) =>
+        rank(x) === 0 && takesPartInAutoSwitch(x) && !x.isActive && !x.needsReauthorization ? 0 : 1;
+      return takeable(a) - takeable(b) || byAutoSwitch(a, b) || headroom(b) - headroom(a);
+    },
     available: (a, b) => {
       const r = rank(a) - rank(b);
       if (r) return r;

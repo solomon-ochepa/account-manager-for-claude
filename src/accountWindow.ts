@@ -114,7 +114,7 @@ export class AccountWindowService {
             value: configDir,
           },
         ],
-        "accountManagerForClaude.credentialsPath": this.credentials.getCredentialsPath(configDir),
+        "claudeAutoSwitch.credentialsPath": this.credentials.getCredentialsPath(configDir),
       },
     };
   }

@@ -19,7 +19,7 @@ export class StatusBarController {
 
   constructor(private readonly store: AccountStore) {
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    this.item.command = "accountManagerForClaude.switchAccount";
+    this.item.command = "claudeAutoSwitch.switchAccount";
     this.item.show();
   }
 

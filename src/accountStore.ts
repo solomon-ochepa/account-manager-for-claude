@@ -8,9 +8,9 @@ import { hasIdentity, profileIdentity, profileMatchesIdentity } from "./identity
 import { tokenFingerprint } from "./oauth";
 import { AccountProfile, ClaudeAuthIdentity, OAuthCreds, UsageSnapshot } from "./types";
 
-const PROFILES_KEY = "accountManagerForClaude.profiles";
-const ACTIVE_KEY = "accountManagerForClaude.activeId";
-const SECRET_PREFIX = "accountManagerForClaude.account.";
+const PROFILES_KEY = "claudeAutoSwitch.profiles";
+const ACTIVE_KEY = "claudeAutoSwitch.activeId";
+const SECRET_PREFIX = "claudeAutoSwitch.account.";
 
 /**
  * Stores account profiles. Metadata (list, order, last usage snapshot) is kept in
@@ -107,6 +107,16 @@ export class AccountStore {
     await this.context.secrets.delete(this.secretKey(id));
     if (this.getActiveId() === id) {
       await this.setActiveId(undefined);
+    }
+  }
+
+  /** Opts an account in or out of auto-switching (every account takes part by default). */
+  async setAutoSwitch(id: string, enabled: boolean): Promise<void> {
+    const profiles = this.profiles;
+    const p = profiles.find((x) => x.id === id);
+    if (p && (p.autoSwitch ?? true) !== enabled) {
+      p.autoSwitch = enabled;
+      await this.saveProfiles(profiles);
     }
   }
 
