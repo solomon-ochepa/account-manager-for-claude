@@ -1,8 +1,8 @@
 {
-  "name": "account-manager-for-claude",
-  "displayName": "Claude Account Manager",
+  "name": "claude-auto-switch",
+  "displayName": "Claude Auto Switch",
   "description": "Seamlessly switch between Claude accounts and subscriptions in Claude Code, with real-time usage limit tracking.",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "publisher": "solomon-ochepa",
   "author": {
     "name": "Solomon Ochepa",
@@ -34,12 +34,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/solomon-ochepa/account-manager-for-claude"
+    "url": "https://github.com/solomon-ochepa/claude-auto-switch"
   },
   "bugs": {
-    "url": "https://github.com/solomon-ochepa/account-manager-for-claude/issues"
+    "url": "https://github.com/solomon-ochepa/claude-auto-switch/issues"
   },
-  "homepage": "https://github.com/solomon-ochepa/account-manager-for-claude#readme",
+  "homepage": "https://github.com/solomon-ochepa/claude-auto-switch#readme",
   "main": "./dist/extension.js",
   "activationEvents": [
     "onStartupFinished"
@@ -48,16 +48,16 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "accountManagerForClaude",
-          "title": "Claude Account Manager",
+          "id": "claudeAutoSwitch",
+          "title": "Claude Auto Switch",
           "icon": "media/icon.svg"
         }
       ]
     },
     "views": {
-      "accountManagerForClaude": [
+      "claudeAutoSwitch": [
         {
-          "id": "accountManagerForClaude.accountsView",
+          "id": "claudeAutoSwitch.accountsView",
           "name": "Accounts",
           "type": "webview"
         }
@@ -65,114 +65,114 @@
     },
     "commands": [
       {
-        "command": "accountManagerForClaude.addCurrentAccount",
+        "command": "claudeAutoSwitch.addCurrentAccount",
         "title": "Claude: Save current account as profile",
         "icon": "$(add)"
       },
       {
-        "command": "accountManagerForClaude.addAccount",
+        "command": "claudeAutoSwitch.addAccount",
         "title": "Claude: Add another account (isolated login)",
         "icon": "$(person-add)"
       },
       {
-        "command": "accountManagerForClaude.switchAccount",
+        "command": "claudeAutoSwitch.switchAccount",
         "title": "Claude: Switch account",
         "icon": "$(arrow-swap)"
       },
       {
-        "command": "accountManagerForClaude.refreshAll",
+        "command": "claudeAutoSwitch.refreshAll",
         "title": "Claude: Refresh accounts, current login and limits",
         "icon": "$(refresh)"
       },
       {
-        "command": "accountManagerForClaude.refreshUsage",
+        "command": "claudeAutoSwitch.refreshUsage",
         "title": "Claude: Refresh usage limits",
         "icon": "$(refresh)"
       },
       {
-        "command": "accountManagerForClaude.sayHi",
+        "command": "claudeAutoSwitch.sayHi",
         "title": "Claude: Say Hi on account",
         "icon": "$(comment)"
       },
       {
-        "command": "accountManagerForClaude.openIndependentWindow",
+        "command": "claudeAutoSwitch.openIndependentWindow",
         "title": "Claude: Open independent account window",
         "icon": "$(window)"
       },
       {
-        "command": "accountManagerForClaude.login",
+        "command": "claudeAutoSwitch.login",
         "title": "Claude: Log in from terminal (replaces the current account)",
         "icon": "$(sign-in)"
       },
       {
-        "command": "accountManagerForClaude.browserLogin",
+        "command": "claudeAutoSwitch.browserLogin",
         "title": "Claude: Authorize in browser (without CLI)",
         "icon": "$(globe)"
       },
       {
-        "command": "accountManagerForClaude.reauthorizeProfile",
+        "command": "claudeAutoSwitch.reauthorizeProfile",
         "title": "Claude: Reauthorize account profile",
         "icon": "$(sign-in)"
       },
       {
-        "command": "accountManagerForClaude.completeProfileReauthorization",
+        "command": "claudeAutoSwitch.completeProfileReauthorization",
         "title": "Claude: Complete profile reauthorization",
         "icon": "$(pass)"
       },
       {
-        "command": "accountManagerForClaude.removeAccount",
+        "command": "claudeAutoSwitch.removeAccount",
         "title": "Claude: Remove account profile"
       },
       {
-        "command": "accountManagerForClaude.renameAccount",
+        "command": "claudeAutoSwitch.renameAccount",
         "title": "Claude: Rename account profile"
       },
       {
-        "command": "accountManagerForClaude.undoSwitch",
+        "command": "claudeAutoSwitch.undoSwitch",
         "title": "Claude: Undo last switch"
       },
       {
-        "command": "accountManagerForClaude.autoSwitchNow",
+        "command": "claudeAutoSwitch.autoSwitchNow",
         "title": "Claude: Switch to the next account now (auto-switch)"
       },
       {
-        "command": "accountManagerForClaude.toggleAutoSwitch",
+        "command": "claudeAutoSwitch.toggleAutoSwitch",
         "title": "Claude: Include or exclude an account in auto-switching"
       },
       {
-        "command": "accountManagerForClaude.showAutoSwitchLog",
+        "command": "claudeAutoSwitch.showAutoSwitchLog",
         "title": "Claude: Show the auto-switch log"
       },
       {
-        "command": "accountManagerForClaude.openPanel",
+        "command": "claudeAutoSwitch.openPanel",
         "title": "Claude: Show accounts panel"
       },
       {
-        "command": "accountManagerForClaude.backupAccounts",
+        "command": "claudeAutoSwitch.backupAccounts",
         "title": "Claude: Back up account list (password-protected ZIP)",
         "icon": "$(archive)"
       },
       {
-        "command": "accountManagerForClaude.restoreAccounts",
+        "command": "claudeAutoSwitch.restoreAccounts",
         "title": "Claude: Restore account list from backup",
         "icon": "$(history)"
       },
       {
-        "command": "accountManagerForClaude.about",
-        "title": "Claude: About Account Manager for Claude",
+        "command": "claudeAutoSwitch.about",
+        "title": "Claude: About Claude Auto Switch",
         "icon": "$(info)"
       },
       {
-        "command": "accountManagerForClaude.clearUsageHistory",
+        "command": "claudeAutoSwitch.clearUsageHistory",
         "title": "Claude: Delete collected usage history"
       },
       {
-        "command": "accountManagerForClaude.openAnalytics",
+        "command": "claudeAutoSwitch.openAnalytics",
         "title": "Claude: Show usage analytics",
         "icon": "$(graph)"
       },
       {
-        "command": "accountManagerForClaude.openAvailability",
+        "command": "claudeAutoSwitch.openAvailability",
         "title": "Claude: Show account availability calendar",
         "icon": "$(calendar)"
       }
@@ -180,80 +180,80 @@
     "menus": {
       "view/title": [
         {
-          "command": "accountManagerForClaude.openAnalytics",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.openAnalytics",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "navigation@1"
         },
         {
-          "command": "accountManagerForClaude.openAvailability",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.openAvailability",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "navigation@2"
         },
         {
-          "command": "accountManagerForClaude.refreshAll",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.refreshAll",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "navigation@3"
         },
         {
-          "command": "accountManagerForClaude.addCurrentAccount",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.addCurrentAccount",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "1_accounts@1"
         },
         {
-          "command": "accountManagerForClaude.addAccount",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.addAccount",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "1_accounts@2"
         },
         {
-          "command": "accountManagerForClaude.browserLogin",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.browserLogin",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "1_accounts@3"
         },
         {
-          "command": "accountManagerForClaude.reauthorizeProfile",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.reauthorizeProfile",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "1_accounts@4"
         },
         {
-          "command": "accountManagerForClaude.sayHi",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.sayHi",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "2_tools@1"
         },
         {
-          "command": "accountManagerForClaude.openIndependentWindow",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.openIndependentWindow",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "2_tools@2"
         },
         {
-          "command": "accountManagerForClaude.autoSwitchNow",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.autoSwitchNow",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "2_tools@3"
         },
         {
-          "command": "accountManagerForClaude.backupAccounts",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.backupAccounts",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "3_backup@1"
         },
         {
-          "command": "accountManagerForClaude.restoreAccounts",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.restoreAccounts",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "3_backup@2"
         },
         {
-          "command": "accountManagerForClaude.about",
-          "when": "view == accountManagerForClaude.accountsView",
+          "command": "claudeAutoSwitch.about",
+          "when": "view == claudeAutoSwitch.accountsView",
           "group": "9_about@1"
         }
       ],
       "commandPalette": [
         {
-          "command": "accountManagerForClaude.removeAccount"
+          "command": "claudeAutoSwitch.removeAccount"
         },
         {
-          "command": "accountManagerForClaude.renameAccount"
+          "command": "claudeAutoSwitch.renameAccount"
         },
         {
-          "command": "accountManagerForClaude.toggleAutoSwitch"
+          "command": "claudeAutoSwitch.toggleAutoSwitch"
         }
       ]
     },
@@ -262,30 +262,30 @@
         "title": "Accounts and limits",
         "order": 1,
         "properties": {
-          "accountManagerForClaude.autoRefresh": {
+          "claudeAutoSwitch.autoRefresh": {
             "type": "boolean",
             "default": true,
-            "markdownDescription": "Regularly check the usage limits of all saved accounts (every `#accountManagerForClaude.pollIntervalSeconds#` seconds). When disabled, usage is only checked at startup, on manual refresh, and when a used-up limit is due to reset."
+            "markdownDescription": "Regularly check the usage limits of all saved accounts (every `#claudeAutoSwitch.pollIntervalSeconds#` seconds). When disabled, usage is only checked at startup, on manual refresh, and when a used-up limit is due to reset."
           },
-          "accountManagerForClaude.pollIntervalSeconds": {
+          "claudeAutoSwitch.pollIntervalSeconds": {
             "type": "number",
             "default": 240,
             "minimum": 60,
-            "markdownDescription": "How often (in seconds, minimum 60 = 1 minute) to check usage limits for each account when `#accountManagerForClaude.autoRefresh#` is on. The usage endpoint is rate-limited: short intervals with many accounts can hit HTTP 429, after which that account is paused for 5 minutes."
+            "markdownDescription": "How often (in seconds, minimum 60 = 1 minute) to check usage limits for each account when `#claudeAutoSwitch.autoRefresh#` is on. The usage endpoint is rate-limited: short intervals with many accounts can hit HTTP 429, after which that account is paused for 5 minutes."
           },
-          "accountManagerForClaude.requestDelaySeconds": {
+          "claudeAutoSwitch.requestDelaySeconds": {
             "type": "number",
             "default": 2,
             "minimum": 0,
             "maximum": 60,
             "markdownDescription": "Pause (in seconds) between requests to Anthropic. Accounts are checked one at a time, never in parallel, with this pause in between, so checking many accounts does not hit the rate limit (HTTP 429). Raise it if you still see 429 errors."
           },
-          "accountManagerForClaude.notifyOnLimitReset": {
+          "claudeAutoSwitch.notifyOnLimitReset": {
             "type": "boolean",
             "default": true,
             "markdownDescription": "Show a notification when a used-up limit (session, weekly, or a model-specific weekly limit) of a saved account becomes available again."
           },
-          "accountManagerForClaude.warnThresholdPercent": {
+          "claudeAutoSwitch.warnThresholdPercent": {
             "type": "number",
             "default": 80,
             "minimum": 1,
@@ -298,7 +298,7 @@
         "title": "Switching",
         "order": 2,
         "properties": {
-          "accountManagerForClaude.autoReloadAfterSwitch": {
+          "claudeAutoSwitch.autoReloadAfterSwitch": {
             "type": "boolean",
             "default": false,
             "markdownDescription": "Automatically reload the VS Code window after switching accounts (required for Claude Code to pick up the new account). When disabled, the extension asks first."
@@ -309,12 +309,12 @@
         "title": "Auto-switch",
         "order": 3,
         "properties": {
-          "accountManagerForClaude.autoSwitch.enabled": {
+          "claudeAutoSwitch.autoSwitch.enabled": {
             "type": "boolean",
             "default": true,
-            "markdownDescription": "Switch to the next account on its own as soon as the active account runs out of a limit (and when a better account becomes available). The next account is chosen by `#accountManagerForClaude.autoSwitch.order#`; every saved account takes part unless it is excluded from the panel's **\u22ef** menu."
+            "markdownDescription": "Switch to the next account on its own as soon as the active account runs out of a limit (and when a better account becomes available). The next account is chosen by `#claudeAutoSwitch.autoSwitch.order#`; every saved account takes part unless it is excluded from the panel's **\u22ef** menu."
           },
-          "accountManagerForClaude.autoSwitch.when": {
+          "claudeAutoSwitch.autoSwitch.when": {
             "type": "string",
             "default": "always",
             "enum": [
@@ -322,12 +322,12 @@
               "exhausted"
             ],
             "enumDescriptions": [
-              "Keep the account that `#accountManagerForClaude.autoSwitch.order#` puts first active, so the capacity that resets soonest is the one being spent. Switches as soon as another account takes that place.",
+              "Keep the account that `#claudeAutoSwitch.autoSwitch.order#` puts first active, so the capacity that resets soonest is the one being spent. Switches as soon as another account takes that place.",
               "Switch only when the active account runs out of a limit, and stay on it as long as it can be used."
             ],
             "markdownDescription": "When auto-switching moves to another account."
           },
-          "accountManagerForClaude.autoSwitch.order": {
+          "claudeAutoSwitch.autoSwitch.order": {
             "type": "string",
             "default": "weeklyReset",
             "enum": [
@@ -346,22 +346,22 @@
             ],
             "markdownDescription": "The order in which available accounts are taken by auto-switching."
           },
-          "accountManagerForClaude.autoSwitch.minAvailablePercent": {
+          "claudeAutoSwitch.autoSwitch.minAvailablePercent": {
             "type": "number",
             "default": 1,
             "minimum": 0,
             "maximum": 100,
             "markdownDescription": "An account is only switched to when at least this much (%) of every one of its limits is left."
           },
-          "accountManagerForClaude.autoSwitch.notify": {
+          "claudeAutoSwitch.autoSwitch.notify": {
             "type": "boolean",
             "default": true,
             "markdownDescription": "Show a notification naming the account auto-switching moved to, and why."
           },
-          "accountManagerForClaude.autoSwitch.sortList": {
+          "claudeAutoSwitch.autoSwitch.sortList": {
             "type": "boolean",
             "default": true,
-            "markdownDescription": "Sort the accounts panel by `#accountManagerForClaude.autoSwitch.order#`, so the account that is used next is at the top. Choosing a sort in the panel overrides this."
+            "markdownDescription": "Sort the accounts panel by `#claudeAutoSwitch.autoSwitch.order#`, so the account that is used next is at the top. Choosing a sort in the panel overrides this."
           }
         }
       },
@@ -369,18 +369,18 @@
         "title": "Usage history",
         "order": 4,
         "properties": {
-          "accountManagerForClaude.usageHistory.enabled": {
+          "claudeAutoSwitch.usageHistory.enabled": {
             "type": "boolean",
             "default": false,
-            "markdownDescription": "Collect a usage reading of every saved account every `#accountManagerForClaude.usageHistory.intervalSeconds#` seconds and keep it on this computer, for the usage analytics charts and the availability calendar. Readings that repeat the previous values are not stored again (except every 15 minutes)."
+            "markdownDescription": "Collect a usage reading of every saved account every `#claudeAutoSwitch.usageHistory.intervalSeconds#` seconds and keep it on this computer, for the usage analytics charts and the availability calendar. Readings that repeat the previous values are not stored again (except every 15 minutes)."
           },
-          "accountManagerForClaude.usageHistory.intervalSeconds": {
+          "claudeAutoSwitch.usageHistory.intervalSeconds": {
             "type": "number",
             "default": 60,
             "minimum": 60,
-            "markdownDescription": "How often (in seconds, minimum 60) usage is read while `#accountManagerForClaude.usageHistory.enabled#` is on. Short periods with many accounts can hit the usage endpoint's rate limit (HTTP 429), which pauses that account for 5 minutes."
+            "markdownDescription": "How often (in seconds, minimum 60) usage is read while `#claudeAutoSwitch.usageHistory.enabled#` is on. Short periods with many accounts can hit the usage endpoint's rate limit (HTTP 429), which pauses that account for 5 minutes."
           },
-          "accountManagerForClaude.usageHistory.retentionDays": {
+          "claudeAutoSwitch.usageHistory.retentionDays": {
             "type": "number",
             "default": 90,
             "minimum": 1,
@@ -392,27 +392,27 @@
         "title": "Claude Code",
         "order": 5,
         "properties": {
-          "accountManagerForClaude.credentialsPath": {
+          "claudeAutoSwitch.credentialsPath": {
             "type": "string",
             "default": "",
             "markdownDescription": "Path to the Claude Code `.credentials.json` file. Empty = default `~/.claude/.credentials.json`. On macOS, Claude Code keeps the login in the Keychain instead; this path's folder selects which Keychain item is used."
           },
-          "accountManagerForClaude.claudeCommand": {
+          "claudeAutoSwitch.claudeCommand": {
             "type": "string",
             "default": "claude",
             "markdownDescription": "Claude Code CLI command used for login and Say Hi warmups. Use the full path to `claude.cmd`/`claude.exe` if VS Code cannot find `claude` in PATH."
           },
-          "accountManagerForClaude.sayHiModel": {
+          "claudeAutoSwitch.sayHiModel": {
             "type": "string",
             "default": "haiku",
             "markdownDescription": "Model passed to `claude -p` for Say Hi warmups. `haiku` is the low-cost/default warmup choice."
           },
-          "accountManagerForClaude.sayHiPrompt": {
+          "claudeAutoSwitch.sayHiPrompt": {
             "type": "string",
             "default": "Hi",
             "markdownDescription": "Prompt used by Say Hi warmups."
           },
-          "accountManagerForClaude.sayHiTimeoutSeconds": {
+          "claudeAutoSwitch.sayHiTimeoutSeconds": {
             "type": "number",
             "default": 120,
             "minimum": 15,

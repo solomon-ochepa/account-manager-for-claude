@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.1.0
+
+Renamed to **Claude Auto Switch**.
+
+- The extension is now `solomon-ochepa.claude-auto-switch`, and the activity bar, the panel's
+  title, and the About sheet carry the new name.
+- Commands and settings moved from `accountManagerForClaude.*` to `claudeAutoSwitch.*`. Settings
+  set under the old keys have to be set again; nothing is read from them.
+- The extension id changed with the name, and VS Code keys an extension's storage to its id, so
+  the account list does not carry over from an earlier install: back it up first
+  (`Claude: Back up account list`) and restore it afterwards. The backup file format is unchanged.
+- The auto-switch log channel is called **Claude Auto Switch**.
+- The package dropped from 5.1 MB to 1.0 MB: a 4.7 MB demo video that nothing referenced is no
+  longer shipped (it stays in the repository).
+
 ## 2.0.0
 
 First release of this fork, maintained by [Solomon Ochepa](https://github.com/solomon-ochepa).
@@ -42,7 +57,7 @@ First release of the Tursoft fork of
 [KrzysztofZander/claude-account-switcher](https://github.com/KrzysztofZander/claude-account-switcher).
 
 - Renamed the extension to **Account Manager for Claude**; commands and settings now
-  use the `accountManagerForClaude.` prefix (profiles from the original extension are not shared).
+  use the `claudeAutoSwitch.` prefix (profiles from the original extension are not shared).
 - Redesigned, compact accounts panel: one-line usage bars with reset times beside them, a status
   dot for the active account, a **⋯** menu per account instead of a row of buttons, **Switch** and
   **Refresh** buttons next to it, and the time of the last update under the account's icon.

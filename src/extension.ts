@@ -71,7 +71,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context.globalState
   );
 
-  const config = () => vscode.workspace.getConfiguration("accountManagerForClaude");
+  const config = () => vscode.workspace.getConfiguration("claudeAutoSwitch");
 
   /** Requests to Anthropic run one at a time; this is the pause between them. */
   const applyRequestDelay = () =>
@@ -102,7 +102,7 @@ export function activate(context: vscode.ExtensionContext): void {
         )
         .then((choice) => {
           if (choice === "Switch") {
-            void vscode.commands.executeCommand("accountManagerForClaude.switchAccount", profileId);
+            void vscode.commands.executeCommand("claudeAutoSwitch.switchAccount", profileId);
           }
         });
       // An account that is usable again may be the one auto-switching was waiting for.
@@ -183,7 +183,7 @@ export function activate(context: vscode.ExtensionContext): void {
         )
         .then((choice) => {
           if (choice === "Save as profile") {
-            void vscode.commands.executeCommand("accountManagerForClaude.addCurrentAccount");
+            void vscode.commands.executeCommand("claudeAutoSwitch.addCurrentAccount");
           }
         });
     }
@@ -492,7 +492,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const offerRename = (id: string, message: string) => {
     void vscode.window.showInformationMessage(message, "Rename").then((choice) => {
       if (choice === "Rename") {
-        void vscode.commands.executeCommand("accountManagerForClaude.renameAccount", id);
+        void vscode.commands.executeCommand("claudeAutoSwitch.renameAccount", id);
       }
     });
   };
@@ -538,7 +538,7 @@ export function activate(context: vscode.ExtensionContext): void {
         if (ranOut) {
           const kind = ranOut.kind === "session" || ranOut.kind.startsWith("weekly_") ? ranOut.kind : "session";
           viewProvider.showProposal(kind as "session" | `weekly_${string}`, true);
-          void vscode.commands.executeCommand("accountManagerForClaude.accountsView.focus");
+          void vscode.commands.executeCommand("claudeAutoSwitch.accountsView.focus");
         }
       }
       if (id === store.getActiveId()) {
@@ -557,7 +557,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // --- Auto-switching ---
 
-  const autoSwitchLog = vscode.window.createOutputChannel("Claude Auto-switch");
+  const autoSwitchLog = vscode.window.createOutputChannel("Claude Auto Switch");
   context.subscriptions.push(autoSwitchLog);
 
   const autoSwitch = new AutoSwitchController(
@@ -614,7 +614,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // --- Commands ---
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.addCurrentAccount", async () => {
+    vscode.commands.registerCommand("claudeAutoSwitch.addCurrentAccount", async () => {
       const res = await switchService.captureCurrent();
       if (res.createdId) {
         offerRename(res.createdId, res.message);
@@ -631,11 +631,11 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.addAccount", () => addAccount())
+    vscode.commands.registerCommand("claudeAutoSwitch.addAccount", () => addAccount())
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.switchAccount", async (id?: string) => {
+    vscode.commands.registerCommand("claudeAutoSwitch.switchAccount", async (id?: string) => {
       const targetId = id ?? (await pickAccount(store, "Switch to account…"));
       if (!targetId) {
         return;
@@ -673,7 +673,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.refreshUsage", async (id?: string) => {
+    vscode.commands.registerCommand("claudeAutoSwitch.refreshUsage", async (id?: string) => {
       if (id) {
         await poller.pollOne(id, true);
         refreshUI();
@@ -754,17 +754,17 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.refreshAll", refreshAll)
+    vscode.commands.registerCommand("claudeAutoSwitch.refreshAll", refreshAll)
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.showAutoSwitchLog", () =>
+    vscode.commands.registerCommand("claudeAutoSwitch.showAutoSwitchLog", () =>
       autoSwitchLog.show(true)
     )
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.autoSwitchNow", async () => {
+    vscode.commands.registerCommand("claudeAutoSwitch.autoSwitchNow", async () => {
       const outcome = await runAutoSwitch({ manual: true });
       if (outcome.action !== "switch") {
         vscode.window[outcome.action === "failed" ? "showWarningMessage" : "showInformationMessage"](
@@ -775,7 +775,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.toggleAutoSwitch", async (id?: string) => {
+    vscode.commands.registerCommand("claudeAutoSwitch.toggleAutoSwitch", async (id?: string) => {
       const targetId = id ?? (await pickAccount(store, "Include or exclude an account in auto-switching…"));
       const profile = targetId ? store.get(targetId) : undefined;
       if (!targetId || !profile) {
@@ -793,7 +793,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.sayHi", async (id?: string) => {
+    vscode.commands.registerCommand("claudeAutoSwitch.sayHi", async (id?: string) => {
       const targetIds = id ? [id] : await pickWarmupTargets(store);
       if (!targetIds || targetIds.length === 0) {
         return;
@@ -811,7 +811,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.openIndependentWindow", async (id?: string) => {
+    vscode.commands.registerCommand("claudeAutoSwitch.openIndependentWindow", async (id?: string) => {
       const targetIds = id ? [id] : await pickWindowTargets(store);
       if (!targetIds || targetIds.length === 0) {
         return;
@@ -825,7 +825,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.login", async () => {
+    vscode.commands.registerCommand("claudeAutoSwitch.login", async () => {
       // Save the outgoing login's latest rotation before Claude Code replaces it.
       await synchronizeCurrentProfile();
       await openClaudeLogin();
@@ -833,7 +833,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.browserLogin", async () => {
+    vscode.commands.registerCommand("claudeAutoSwitch.browserLogin", async () => {
       await synchronizeCurrentProfile();
       const result = await authorizeInBrowser();
       if (result.ok) {
@@ -851,7 +851,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.reauthorizeProfile", async (id?: string) => {
+    vscode.commands.registerCommand("claudeAutoSwitch.reauthorizeProfile", async (id?: string) => {
       const targetId = id ?? (await pickAccount(store, "Reauthorize profile..."));
       if (targetId) {
         await startProfileReauthorization(targetId);
@@ -861,7 +861,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "accountManagerForClaude.completeProfileReauthorization",
+      "claudeAutoSwitch.completeProfileReauthorization",
       async (id?: string) => {
         const targetId = id ?? (await pickAccount(store, "Complete profile reauthorization..."));
         if (!targetId) {
@@ -878,7 +878,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.removeAccount", async (id?: string) => {
+    vscode.commands.registerCommand("claudeAutoSwitch.removeAccount", async (id?: string) => {
       const targetId = id ?? (await pickAccount(store, "Remove account profile…"));
       if (!targetId) {
         return;
@@ -900,7 +900,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.renameAccount", async (id?: string) => {
+    vscode.commands.registerCommand("claudeAutoSwitch.renameAccount", async (id?: string) => {
       const targetId = id ?? (await pickAccount(store, "Rename profile…"));
       if (!targetId) {
         return;
@@ -919,7 +919,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.undoSwitch", async () => {
+    vscode.commands.registerCommand("claudeAutoSwitch.undoSwitch", async () => {
       const res = await switchService.undoSwitch();
       profileActivity.setActiveProfile(store.getActiveId());
       vscode.window[res.ok ? "showInformationMessage" : "showWarningMessage"](res.message);
@@ -956,13 +956,13 @@ export function activate(context: vscode.ExtensionContext): void {
   });
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.openAnalytics", () =>
+    vscode.commands.registerCommand("claudeAutoSwitch.openAnalytics", () =>
       AnalyticsPanel.show(context.extensionUri, { store, history, getConfig: config })
     )
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.openAvailability", () =>
+    vscode.commands.registerCommand("claudeAutoSwitch.openAvailability", () =>
       AvailabilityPanel.show(context.extensionUri, {
         store,
         history,
@@ -976,7 +976,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.clearUsageHistory", async () => {
+    vscode.commands.registerCommand("claudeAutoSwitch.clearUsageHistory", async () => {
       const confirm = await vscode.window.showWarningMessage(
         "Delete all collected usage history? Charts and the availability calendar lose their past data.",
         { modal: true },
@@ -995,8 +995,8 @@ export function activate(context: vscode.ExtensionContext): void {
   const LOCAL_ONLY_SETTINGS = new Set(["credentialsPath"]);
   const settingKeys = (): string[] =>
     Object.keys(context.extension.packageJSON.contributes?.configuration?.properties ?? {})
-      .filter((k) => k.startsWith("accountManagerForClaude."))
-      .map((k) => k.slice("accountManagerForClaude.".length))
+      .filter((k) => k.startsWith("claudeAutoSwitch."))
+      .map((k) => k.slice("claudeAutoSwitch.".length))
       .filter((k) => !LOCAL_ONLY_SETTINGS.has(k));
 
   /** Panel choices plus the user's own (global) extension settings. */
@@ -1051,7 +1051,7 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.backupAccounts", async () => {
+    vscode.commands.registerCommand("claudeAutoSwitch.backupAccounts", async () => {
       if (store.list().length === 0) {
         vscode.window.showInformationMessage("There are no saved accounts to back up.");
         return;
@@ -1093,7 +1093,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.restoreAccounts", async () => {
+    vscode.commands.registerCommand("claudeAutoSwitch.restoreAccounts", async () => {
       const picked = await vscode.window.showOpenDialog({
         title: "Restore account backup",
         canSelectMany: false,
@@ -1144,15 +1144,15 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.about", async () => {
-      await vscode.commands.executeCommand("accountManagerForClaude.accountsView.focus");
+    vscode.commands.registerCommand("claudeAutoSwitch.about", async () => {
+      await vscode.commands.executeCommand("claudeAutoSwitch.accountsView.focus");
       viewProvider.showAbout();
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("accountManagerForClaude.openPanel", () => {
-      void vscode.commands.executeCommand("accountManagerForClaude.accountsView.focus");
+    vscode.commands.registerCommand("claudeAutoSwitch.openPanel", () => {
+      void vscode.commands.executeCommand("claudeAutoSwitch.accountsView.focus");
     })
   );
 
@@ -1160,27 +1160,27 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
-        e.affectsConfiguration("accountManagerForClaude.pollIntervalSeconds") ||
-        e.affectsConfiguration("accountManagerForClaude.autoRefresh")
+        e.affectsConfiguration("claudeAutoSwitch.pollIntervalSeconds") ||
+        e.affectsConfiguration("claudeAutoSwitch.autoRefresh")
       ) {
         poller.restart();
       }
-      if (e.affectsConfiguration("accountManagerForClaude.requestDelaySeconds")) {
+      if (e.affectsConfiguration("claudeAutoSwitch.requestDelaySeconds")) {
         applyRequestDelay();
       }
-      if (e.affectsConfiguration("accountManagerForClaude.usageHistory")) {
+      if (e.affectsConfiguration("claudeAutoSwitch.usageHistory")) {
         restartHistoryCollection();
         viewProvider.refresh(); // the panel's tracking notice follows the setting
       }
-      if (e.affectsConfiguration("accountManagerForClaude.warnThresholdPercent")) {
+      if (e.affectsConfiguration("claudeAutoSwitch.warnThresholdPercent")) {
         refreshUI();
       }
-      if (e.affectsConfiguration("accountManagerForClaude.autoSwitch")) {
+      if (e.affectsConfiguration("claudeAutoSwitch.autoSwitch")) {
         viewProvider.setAutoSwitchState(readAutoSwitchSettings(), (id) => autoSwitch.skipReason(id));
         refreshUI();
         void runAutoSwitch();
       }
-      if (e.affectsConfiguration("accountManagerForClaude.credentialsPath")) {
+      if (e.affectsConfiguration("claudeAutoSwitch.credentialsPath")) {
         watchCredentialsFile();
         onCredentialsFileChanged();
       }

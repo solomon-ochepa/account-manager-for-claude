@@ -1,10 +1,10 @@
-# Account Manager for Claude
+# Claude Auto Switch
 
-[![Release](https://img.shields.io/github/v/release/solomon-ochepa/account-manager-for-claude?label=Release&logo=github)](https://github.com/solomon-ochepa/account-manager-for-claude/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/solomon-ochepa/account-manager-for-claude/total?label=Downloads&logo=github)](https://github.com/solomon-ochepa/account-manager-for-claude/releases)
-[![License](https://img.shields.io/badge/License-MIT-green)](https://github.com/solomon-ochepa/account-manager-for-claude/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/solomon-ochepa/claude-auto-switch?label=Release&logo=github)](https://github.com/solomon-ochepa/claude-auto-switch/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/solomon-ochepa/claude-auto-switch/total?label=Downloads&logo=github)](https://github.com/solomon-ochepa/claude-auto-switch/releases)
+[![License](https://img.shields.io/badge/License-MIT-green)](https://github.com/solomon-ochepa/claude-auto-switch/blob/main/LICENSE)
 
-![Account Manager for Claude animation](media/claude-account-manager-animation.gif)
+![Claude Auto Switch animation](media/claude-auto-switch-animation.gif)
 
 **Run several Claude subscriptions in Claude Code and switch between them in one click.** See how
 much of every account's limits is left, and let the extension tell you which account to use next.
@@ -36,7 +36,7 @@ much of every account's limits is left, and let the extension tell you which acc
 
 ## Install
 
-- Download the latest `.vsix` from [Releases](https://github.com/solomon-ochepa/account-manager-for-claude/releases/latest).
+- Download the latest `.vsix` from [Releases](https://github.com/solomon-ochepa/claude-auto-switch/releases/latest).
 - **VS Code:** `code --install-extension account-manager-for-claude-<version>.vsix`, or
   **Extensions: Install from VSIX…** in the command palette. Install it from inside the editor,
   not by double-clicking the file in Explorer: that may open Visual Studio's installer, which
@@ -47,7 +47,7 @@ much of every account's limits is left, and let the extension tell you which acc
 ## Getting started
 
 1. Log in to Claude Code with your first account.
-2. Open the **Claude Account Manager** panel from the activity bar and click **Save this account**.
+2. Open the **Claude Auto Switch** panel from the activity bar and click **Save this account**.
 3. Click **Add account** and log in with another account. The current account stays active.
 4. Switch with the blue **Switch** button on a card, the status bar, or `Claude: Switch account`.
 5. **Reload the window after switching** so Claude Code picks up the new account. The extension
@@ -193,11 +193,11 @@ account can be used, across a week or hour by hour for a single day.
 | `Claude: Back up account list (password-protected ZIP)` | Save all accounts to an encrypted ZIP |
 | `Claude: Restore account list from backup` | Merge a backup into the list |
 | `Claude: Delete collected usage history` | Remove all usage readings |
-| `Claude: About Account Manager for Claude` | Version, author, and project information |
+| `Claude: About Claude Auto Switch` | Version, author, and project information |
 
 ## Settings
 
-All settings start with `accountManagerForClaude.`, and the Settings editor groups them under
+All settings start with `claudeAutoSwitch.`, and the Settings editor groups them under
 **Accounts and limits**, **Switching**, **Auto-switch**, **Usage history**, and **Claude Code**.
 
 ### Accounts and limits
@@ -323,7 +323,7 @@ Keychain could not be read or updated, unlock the login keychain (Keychain Acces
 
 ## Development
 
-Source: [github.com/solomon-ochepa/account-manager-for-claude](https://github.com/solomon-ochepa/account-manager-for-claude).
+Source: [github.com/solomon-ochepa/claude-auto-switch](https://github.com/solomon-ochepa/claude-auto-switch).
 Requires [Node.js](https://nodejs.org/) 18+ and VS Code 1.85+. Run `npm install` first.
 
 | Script | What it does |

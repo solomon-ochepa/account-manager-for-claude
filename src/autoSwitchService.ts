@@ -36,9 +36,9 @@ export const DEFAULT_AUTO_SWITCH_SETTINGS: AutoSwitchSettings = {
   sortList: true,
 };
 
-/** Reads the `accountManagerForClaude.autoSwitch.*` settings, falling back to the defaults. */
+/** Reads the `claudeAutoSwitch.autoSwitch.*` settings, falling back to the defaults. */
 export function readAutoSwitchSettings(): AutoSwitchSettings {
-  const config = vscode.workspace.getConfiguration("accountManagerForClaude");
+  const config = vscode.workspace.getConfiguration("claudeAutoSwitch");
   const order = config.get<string>("autoSwitch.order", DEFAULT_AUTO_SWITCH_ORDER);
   const when = config.get<string>("autoSwitch.when", DEFAULT_AUTO_SWITCH_WHEN);
   return {

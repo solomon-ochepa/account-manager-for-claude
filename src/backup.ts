@@ -35,7 +35,7 @@ export interface BackupEntry {
 export interface BackupSettings {
   /** Panel choices: sort order and filters. */
   view?: Record<string, unknown>;
-  /** User-level `accountManagerForClaude.*` settings, keyed without the prefix. */
+  /** User-level `claudeAutoSwitch.*` settings, keyed without the prefix. */
   config?: Record<string, unknown>;
 }
 
@@ -114,7 +114,7 @@ export async function readBackupZip(data: Uint8Array, password: string): Promise
     throw new BackupError("The backup content is corrupted.");
   }
   if (parsed.format !== FORMAT || !Array.isArray(parsed.accounts)) {
-    throw new BackupError("The file is not an Account Manager for Claude backup.");
+    throw new BackupError("The file is not a Claude Auto Switch backup.");
   }
   if (typeof parsed.version !== "number" || parsed.version > FORMAT_VERSION) {
     throw new BackupError("The backup was made by a newer version of the extension; update it first.");
