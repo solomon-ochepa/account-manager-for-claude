@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.3
+
+- The shield badge's tooltip leads with the limit itself (`Hand-over limit: 80%`), says what
+  happens when it is reached, and where to change it. The **Keep active** star reads the same way:
+  its state first, then what a click does.
+
 ## 2.3.2
 
 - The hand-over limit on a card is a shield badge with the percent (`80%`) instead of the words

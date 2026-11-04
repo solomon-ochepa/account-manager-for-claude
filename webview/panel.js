@@ -323,10 +323,11 @@ import {
     if (acc.switchOutPercent) {
       const out = el("span", "badge muted icon-badge");
       out.append(icon("shield"), el("span", "", acc.switchOutPercent + "%"));
-      out.title =
-        "Auto-switching hands this account over once one of its limits reaches " +
-        acc.switchOutPercent +
-        "%, without waiting for it to be used up.";
+      out.title = [
+        "Hand-over limit: " + acc.switchOutPercent + "%",
+        "Auto-switching takes the next account once any limit here reaches it.",
+        "Change it in the \u22ef menu.",
+      ].join("\n");
       head.appendChild(out);
     }
     if (acc.autoSwitch === false) {
@@ -428,8 +429,8 @@ import {
     const keep = iconButton(
       acc.keepActive ? "starOn" : "star",
       acc.keepActive
-        ? "Kept active: auto-switching is paused on this account. Click to release it."
-        : "Keep this account active and pause auto-switching",
+        ? "Kept active\nAuto-switching is paused on this account.\nClick to release it."
+        : "Keep active\nHolds this account and pauses auto-switching.",
       () => post("toggleKeepActive", acc.id),
       "quick keep" + (acc.keepActive ? " on" : "")
     );
