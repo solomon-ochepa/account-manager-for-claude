@@ -24,7 +24,7 @@ export interface AutoSwitchSettings {
 }
 
 export const DEFAULT_AUTO_SWITCH_SETTINGS: AutoSwitchSettings = {
-  enabled: false,
+  enabled: true,
   order: DEFAULT_AUTO_SWITCH_ORDER,
   minAvailablePercent: 1,
   notify: true,

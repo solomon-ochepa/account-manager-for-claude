@@ -282,7 +282,7 @@
         },
         "accountManagerForClaude.autoSwitch.enabled": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "markdownDescription": "Switch to the next account on its own as soon as the active account runs out of a limit (and when a better account becomes available). The next account is chosen by `#accountManagerForClaude.autoSwitch.order#`; every saved account takes part unless it is excluded from the panel's **⋯** menu."
         },
         "accountManagerForClaude.autoSwitch.order": {

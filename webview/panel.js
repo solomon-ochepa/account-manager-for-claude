@@ -16,7 +16,7 @@ import {
 
 (function () {
   const vscode = acquireVsCodeApi();
-  let state = { accounts: [], warnThreshold: 80, autoSwitch: { enabled: false, order: "weeklyReset", sortList: true } };
+  let state = { accounts: [], warnThreshold: 80, autoSwitch: { enabled: true, order: "weeklyReset", sortList: true } };
 
   const listEl = document.getElementById("list");
   const emptyEl = document.getElementById("empty");

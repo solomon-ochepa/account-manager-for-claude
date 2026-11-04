@@ -22,8 +22,8 @@ much of every account's limits is left, and let the extension tell you which acc
   all your accounts, each with the time until it resets. Same data as Claude Code's `/usage`.
 - **It picks your next account.** Proposals rank your other accounts by the capacity you would
   lose soonest, and pop up on their own when the active account runs out.
-- **Or switches for you.** Turn on auto-switch and the extension moves to the next account by
-  itself when the active one runs out, taking the account whose weekly limit resets soonest.
+- **Or switches for you.** Auto-switch moves to the next account by itself when the active one
+  runs out, taking the account whose weekly limit resets soonest.
 - **No more daily logins.** Tokens are refreshed exactly the way Claude Code refreshes them, under
   its own lock, so neither side is ever left holding a spent token.
 - **See what you actually use.** Usage analytics show how much of each limit's capacity you used
@@ -87,8 +87,8 @@ much of every account's limits is left, and let the extension tell you which acc
 
 ### Auto-switch
 
-Turn on `autoSwitch.enabled` and the extension changes accounts by itself when the active one
-runs out of a limit.
+The extension changes accounts by itself when the active one runs out of a limit. It is on by
+default; `autoSwitch.enabled` turns it off.
 
 - **The nearest reset goes first.** Capacity that is not used before a limit resets is lost, so
   the account whose weekly (7-day) limit resets soonest is taken first. `autoSwitch.order` chooses
@@ -199,7 +199,7 @@ All settings start with `accountManagerForClaude.`.
 | `requestDelaySeconds` | `2` | Pause between requests to Anthropic; accounts are checked one at a time, never in parallel |
 | `notifyOnLimitReset` | `true` | Notify when a used-up limit is available again |
 | `autoReloadAfterSwitch` | `false` | Reload the window automatically after switching |
-| `autoSwitch.enabled` | `false` | Switch to the next account on its own when the active one runs out |
+| `autoSwitch.enabled` | `true` | Switch to the next account on its own when the active one runs out |
 | `autoSwitch.order` | `weeklyReset` | Which account is taken first: `weeklyReset`, `anyReset`, `urgency`, `remaining`, or `listOrder` |
 | `autoSwitch.minAvailablePercent` | `1` | How much (%) of every limit an account must have left to be switched to |
 | `autoSwitch.notify` | `true` | Notify which account auto-switching moved to, and why |

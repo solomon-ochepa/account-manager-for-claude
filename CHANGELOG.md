@@ -2,8 +2,8 @@
 
 ## Unreleased
 
-- **Auto-switch**: with `autoSwitch.enabled`, the extension switches to the next account by itself
-  when the active one runs out of a limit.
+- **Auto-switch**: the extension switches to the next account by itself when the active one runs
+  out of a limit. On by default; `autoSwitch.enabled` turns it off.
   - The account whose weekly (7-day) limit resets soonest goes first, so capacity is used before
     it is lost. `autoSwitch.order` also offers the soonest reset of any limit, the capacity that
     would be lost soonest, the most usage left, and the panel's own order.
