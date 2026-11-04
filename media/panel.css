@@ -544,6 +544,18 @@ button:focus-visible {
   height: 10px;
 }
 
+/* A badge that leads with an icon instead of a word. */
+.badge.icon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.badge.icon-badge .ico {
+  width: 10px;
+  height: 10px;
+}
+
 .quick.reauth {
   color: var(--warn);
   opacity: 1;

@@ -98,7 +98,7 @@ turns it off.
 - **Give an account a hand-over limit.** **Set a hand-over limit…** on a card's **⋯** menu takes a
   percent: once any of that account's limits reaches it, auto-switching treats the account as
   spent and takes the next one in the queue, without waiting for the limit to be used up. The card
-  shows **Out at 80%**, and the log says `"X" reached its 80% hand-over limit.` before naming the
+  carries a shield badge with the percent, and the log says `"X" reached its 80% hand-over limit.` before naming the
   account it moved to. Leave the box empty to use the account until a limit is actually used up.
 - **Keep one account active to override it.** The **star** button beside **Switch** on a card holds
   that account: auto-switching takes it, then moves nowhere else — not even when its limits run

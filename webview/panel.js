@@ -51,6 +51,7 @@ import {
     info: '<circle cx="8" cy="8" r="6"/><path d="M8 7.3V11M8 4.9v.2"/>',
     warning: '<path d="M8 2.3 14.2 13H1.8z"/><path d="M8 6.4v3.2M8 11.2v.2"/>',
     signIn: '<path d="M9.5 2.5h3v11h-3M2.5 8h7M7 5.5 9.5 8 7 10.5"/>',
+    shield: '<path d="M8 2.2l4.5 1.6v4c0 2.6-1.8 4.6-4.5 5.9-2.7-1.3-4.5-3.3-4.5-5.9v-4z"/>',
     star: '<path d="M8 2.6l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 11.3l-3.4 1.8.7-3.8L2.5 6.6l3.8-.5z"/>',
     starOn: '<path d="M8 2.6l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 11.3l-3.4 1.8.7-3.8L2.5 6.6l3.8-.5z" fill="currentColor"/>',
     gauge: '<path d="M2.5 11.5a5.5 5.5 0 1 1 11 0"/><path d="M8 11.5 11 6.8"/>',
@@ -320,11 +321,13 @@ import {
       head.appendChild(plan);
     }
     if (acc.switchOutPercent) {
-      const out = el("span", "badge muted", "Out at " + acc.switchOutPercent + "%");
-      out.title =
-        "Auto-switching hands this account over once one of its limits reaches " +
-        acc.switchOutPercent +
-        "%, without waiting for it to be used up.";
+      const out = el("span", "badge muted icon-badge");
+      out.append(icon("shield"), el("span", "", acc.switchOutPercent + "%"));
+      out.title = [
+        "Hand-over limit: " + acc.switchOutPercent + "%",
+        "Auto-switching takes the next account once any limit here reaches it.",
+        "Change it in the \u22ef menu.",
+      ].join("\n");
       head.appendChild(out);
     }
     if (acc.autoSwitch === false) {
@@ -426,8 +429,8 @@ import {
     const keep = iconButton(
       acc.keepActive ? "starOn" : "star",
       acc.keepActive
-        ? "Kept active: auto-switching is paused on this account. Click to release it."
-        : "Keep this account active and pause auto-switching",
+        ? "Kept active\nAuto-switching is paused on this account.\nClick to release it."
+        : "Keep active\nHolds this account and pauses auto-switching.",
       () => post("toggleKeepActive", acc.id),
       "quick keep" + (acc.keepActive ? " on" : "")
     );
