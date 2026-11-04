@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.4.1
+
+- The description under the name says what the extension does now: "Switches Claude Code between
+  your Claude accounts on its own, by the limit that resets soonest, with live usage limits." The
+  About sheet reads the same.
+- Fixed: the About sheet's **Source** and **Issues** links still used the repository's old name.
+
 ## 2.4.0
 
 - **Keeping an account active asks for a higher hand-over limit** when that account has already
