@@ -432,12 +432,11 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
       <button id="aboutClose" class="icon-btn about-close" title="Close" aria-label="Close"></button>
       <img class="about-logo" src="${iconUri}" alt="" />
       <h2 id="aboutTitle">Claude Auto Switch</h2>
+      <p class="about-byline"><a href="#" data-link="https://github.com/solomon-ochepa">Solomon Ochepa</a></p>
       <p class="about-version">Version <span id="aboutVersion"></span></p>
       <p class="about-desc">Auto switch your Claude accounts; Claude Code uses the one whose limit
         resets soonest.</p>
       <dl class="about-meta">
-        <dt>Author</dt>
-        <dd><a href="#" data-link="https://github.com/solomon-ochepa">Solomon Ochepa</a></dd>
         <dt>Source</dt>
         <dd><a href="#" data-link="https://github.com/solomon-ochepa/claude-auto-switch">solomon-ochepa/claude-auto-switch</a></dd>
         <dt>Issues</dt>

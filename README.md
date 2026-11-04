@@ -4,8 +4,6 @@
 [![Downloads](https://img.shields.io/github/downloads/solomon-ochepa/claude-auto-switch/total?label=Downloads&logo=github)](https://github.com/solomon-ochepa/claude-auto-switch/releases)
 [![License](https://img.shields.io/badge/License-MIT-green)](https://github.com/solomon-ochepa/claude-auto-switch/blob/main/LICENSE)
 
-**by [Solomon Ochepa](https://github.com/solomon-ochepa)**
-
 ![Claude Auto Switch animation](media/claude-auto-switch-animation.gif)
 
 **Auto switch your Claude accounts, and stop thinking about which one is active.**

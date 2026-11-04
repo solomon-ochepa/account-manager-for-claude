@@ -1253,6 +1253,13 @@ button:focus-visible {
   font-weight: 600;
 }
 
+/* The author belongs with the name, above the version. */
+.about-byline {
+  margin: 0 0 2px;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
 .about-version {
   margin: 0;
   font-size: 11px;

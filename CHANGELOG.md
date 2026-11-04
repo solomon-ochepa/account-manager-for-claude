@@ -1,11 +1,11 @@
 # Changelog
 
-## 2.4.3
+## 2.4.4
 
 - The description reads "Auto switch your Claude accounts; Claude Code uses the one whose limit
   resets soonest, with live usage limits." The About sheet and the page's opening line follow it.
-- The page carries a byline, since the publisher line VS Code shows is the publisher identifier
-  and no manifest field overrides it.
+- The About sheet names the author under the title, with the version, instead of listing it among
+  the details below.
 
 ## 2.4.2
 
