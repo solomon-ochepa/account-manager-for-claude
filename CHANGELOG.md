@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.2.0
+
+- **Keep one account active.** **Keep active (pause auto-switching)** on a card's **⋯** menu, or
+  `Claude: Keep an account active`, holds that account: auto-switching takes it and then moves
+  nowhere else until the mark comes off. It waits — and says when the account is usable again —
+  rather than moving on when the account's limits run out, and the mark beats the account's own
+  opt-out and `autoSwitch.minAvailablePercent`. One account carries it at a time, and the card
+  shows **Kept active**.
+- **The weekly reset date decides on its own.** The 5-hour window no longer influences the
+  `weeklyReset` order: it was breaking ties between accounts resetting on the same date, and
+  counted toward the "usage left" tie-break. Accounts that share a reset date are now separated
+  by how much of the *weekly* limit is left, and the reason sentence says so. The `anyReset`
+  order still counts every limit, the 5-hour window included.
+
 ## 2.1.0
 
 Renamed to **Claude Auto Switch**.

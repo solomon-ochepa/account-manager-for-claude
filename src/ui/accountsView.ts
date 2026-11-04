@@ -45,6 +45,8 @@ interface ViewAccount {
   needsReauthorization: boolean;
   /** false = excluded from auto-switching. */
   autoSwitch: boolean;
+  /** true = kept in use, which pauses auto-switching. */
+  keepActive: boolean;
   /** Why auto-switching passed this account over in the current round. */
   autoSwitchSkip?: string;
   /** Which service the account belongs to; only Claude for now. */
@@ -263,6 +265,11 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
         case "undo":
           void vscode.commands.executeCommand("claudeAutoSwitch.undoSwitch");
           break;
+        case "toggleKeepActive":
+          if (msg.id) {
+            void vscode.commands.executeCommand("claudeAutoSwitch.toggleKeepActive", msg.id);
+          }
+          break;
         case "toggleAutoSwitch":
           if (msg.id) {
             void vscode.commands.executeCommand("claudeAutoSwitch.toggleAutoSwitch", msg.id);
@@ -305,6 +312,7 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
           retryAfter: p.lastUsage?.retryAfter,
           needsReauthorization: expired,
           autoSwitch: p.autoSwitch ?? true,
+          keepActive: Boolean(p.keepActive),
           autoSwitchSkip: this.autoSwitchSkip(p.id),
           provider: "claude",
         };

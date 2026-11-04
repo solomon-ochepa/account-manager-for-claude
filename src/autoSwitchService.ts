@@ -114,6 +114,7 @@ export class AutoSwitchController {
         isActive: p.id === activeId,
         needsReauthorization: needsReauthorization(this.store, p, await this.store.getCreds(p.id)),
         autoSwitch: p.autoSwitch,
+        keepActive: p.keepActive,
         windows: p.lastUsage?.windows ?? [],
       }))
     );
@@ -151,7 +152,9 @@ export class AutoSwitchController {
     // usage check, and that the switch accepts, wins.
     let lastMessage = plan.reason;
     for (const candidate of plan.ranked) {
-      const confirmed = await this.confirmAvailable(candidate.id, settings.minAvailablePercent);
+      // A kept account was chosen by hand: only a used-up limit stops it, not the minimum.
+      const minimum = plan.held ? 0 : settings.minAvailablePercent;
+      const confirmed = await this.confirmAvailable(candidate.id, minimum);
       if (!confirmed.ok) {
         this.skips.record(candidate.id, confirmed.message, Date.now(), this.cooldownMs());
         lastMessage = confirmed.message;
@@ -190,6 +193,7 @@ export class AutoSwitchController {
       label: profile.label,
       needsReauthorization: needsReauthorization(this.store, profile, creds),
       autoSwitch: profile.autoSwitch,
+      keepActive: profile.keepActive,
       windows: profile.lastUsage?.windows ?? [],
     };
     if (account.needsReauthorization) {

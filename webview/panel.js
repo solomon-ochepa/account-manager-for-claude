@@ -51,6 +51,7 @@ import {
     info: '<circle cx="8" cy="8" r="6"/><path d="M8 7.3V11M8 4.9v.2"/>',
     warning: '<path d="M8 2.3 14.2 13H1.8z"/><path d="M8 6.4v3.2M8 11.2v.2"/>',
     signIn: '<path d="M9.5 2.5h3v11h-3M2.5 8h7M7 5.5 9.5 8 7 10.5"/>',
+    pin: '<path d="M6 2.5h4l-.6 4 2.1 2.2H4.5L6.6 6.5z"/><path d="M8 10.7V13.5"/>',
     autoOn: '<path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13"/>',
     autoOff: '<path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13"/><path d="M2 14 14 2"/>',
   };
@@ -316,6 +317,11 @@ import {
       plan.title = `Plan: ${acc.subscriptionType}`;
       head.appendChild(plan);
     }
+    if (acc.keepActive) {
+      const kept = el("span", "badge muted", "Kept active");
+      kept.title = "Auto-switching is paused on this account until you stop keeping it active.";
+      head.appendChild(kept);
+    }
     if (acc.autoSwitch === false) {
       const off = el("span", "badge muted", "No auto-switch");
       off.title = "This account is excluded from auto-switching. Turn it back on in the \u22ef menu.";
@@ -434,6 +440,11 @@ import {
       }
       if (accounts.length > 1) items.push(null);
     }
+    items.push({
+      icon: "pin",
+      label: acc.keepActive ? "Stop keeping active" : "Keep active (pause auto-switching)",
+      run: act("toggleKeepActive"),
+    });
     items.push({
       icon: acc.autoSwitch === false ? "autoOn" : "autoOff",
       label: acc.autoSwitch === false ? "Include in auto-switching" : "Exclude from auto-switching",

@@ -120,6 +120,30 @@ export class AccountStore {
     }
   }
 
+  /**
+   * Marks the account to stay in use, or takes the mark off. Only one account can be
+   * marked, so marking one clears the others.
+   */
+  async setKeepActive(id: string, enabled: boolean): Promise<void> {
+    const profiles = this.profiles;
+    let changed = false;
+    for (const p of profiles) {
+      const next = enabled && p.id === id;
+      if (Boolean(p.keepActive) !== next) {
+        p.keepActive = next || undefined;
+        changed = true;
+      }
+    }
+    if (changed) {
+      await this.saveProfiles(profiles);
+    }
+  }
+
+  /** The account marked to stay in use, if any. */
+  keptActive(): AccountProfile | undefined {
+    return this.profiles.find((p) => p.keepActive);
+  }
+
   async rename(id: string, label: string): Promise<void> {
     const profiles = this.profiles;
     const p = profiles.find((x) => x.id === id);

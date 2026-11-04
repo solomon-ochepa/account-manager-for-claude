@@ -775,6 +775,33 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("claudeAutoSwitch.toggleKeepActive", async (id?: string) => {
+      const targetId = id ?? (await pickAccount(store, "Keep an account active…"));
+      const profile = targetId ? store.get(targetId) : undefined;
+      if (!targetId || !profile) {
+        return;
+      }
+      const keep = !profile.keepActive;
+      const previous = keep ? store.keptActive() : undefined;
+      await store.setKeepActive(targetId, keep);
+      refreshUI();
+      if (!keep) {
+        vscode.window.showInformationMessage(
+          `"${profile.label}" is no longer kept active. Auto-switching decides again.`
+        );
+        await runAutoSwitch();
+        return;
+      }
+      const replaced =
+        previous && previous.id !== targetId ? ` "${previous.label}" is no longer kept active.` : "";
+      vscode.window.showInformationMessage(
+        `"${profile.label}" is kept active. Auto-switching is paused until you stop keeping it active.${replaced}`
+      );
+      await runAutoSwitch({ manual: true });
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand("claudeAutoSwitch.toggleAutoSwitch", async (id?: string) => {
       const targetId = id ?? (await pickAccount(store, "Include or exclude an account in auto-switching…"));
       const profile = targetId ? store.get(targetId) : undefined;

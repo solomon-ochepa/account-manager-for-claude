@@ -53,6 +53,8 @@ export interface AccountProfile {
   order: number;
   /** false = opted out of auto-switching; every account takes part by default. */
   autoSwitch?: boolean;
+  /** true = kept in use: auto-switching holds this account until the mark is taken off. */
+  keepActive?: boolean;
   /** last read usage snapshot (cached for fast rendering) */
   lastUsage?: UsageSnapshot;
 }
