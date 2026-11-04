@@ -1,7 +1,42 @@
 # Changelog
 
-## 2.3.3
+## 2.5.0
 
+- **A new login saves itself.** When Claude Code starts using a login that is not one of the saved
+  accounts, it is saved straight away, with an offer to rename it — logging in is all there is to
+  do, and the "this login is not saved yet" prompt is gone. Each login is attempted once, so an
+  incomplete one cannot ask again on every poll, and a later login is attempted on its own.
+  `autoSaveNewAccounts` turns it off and leaves the panel's **Save** button to it.
+
+## 2.4.4
+
+- The description reads "Auto switch your Claude accounts; Claude Code uses the one whose limit
+  resets soonest, with live usage limits." The About sheet and the page's opening line follow it.
+- The About sheet names the author under the title, with the version, instead of listing it among
+  the details below.
+
+## 2.4.2
+
+- The description leads with what it does: "Auto switch Claude Code between your Claude accounts
+  by the limit that resets soonest, with live usage limits."
+- The extension's page was rewritten around the automation: what it does, how it picks, and a
+  table of the per-account controls, with switching by hand after it. Fixed the install command,
+  which still named the old `.vsix`, and the output channel's name in the docs.
+
+## 2.4.1
+
+- The description under the name says what the extension does now: "Switches Claude Code between
+  your Claude accounts on its own, by the limit that resets soonest, with live usage limits." The
+  About sheet reads the same.
+- Fixed: the About sheet's **Source** and **Issues** links still used the repository's old name.
+
+## 2.4.0
+
+- **Keeping an account active asks for a higher hand-over limit** when that account has already
+  reached its own: the prompt names the limit that tripped it and takes any value above the
+  current usage, and the account is only marked once the limit is raised. When the limit is
+  genuinely used up, raising it would change nothing, so it asks to confirm instead — kept active,
+  the account is held and waits for the reset.
 - The shield badge's tooltip leads with the limit itself (`Hand-over limit: 80%`), says what
   happens when it is reached, and where to change it. The **Keep active** star reads the same way:
   its state first, then what a click does.

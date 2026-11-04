@@ -98,6 +98,26 @@ export function switchOutPercentOf(acc: AutoSwitchAccount): number {
   return typeof own === "number" && own > 0 && own <= EXHAUSTED_PERCENT ? own : EXHAUSTED_PERCENT;
 }
 
+/** The most used limit of `acc`, or undefined when no usage is known. */
+export function busiestWindow(acc: AutoSwitchAccount): ProposeWindow | undefined {
+  return windowsOf(acc).reduce<ProposeWindow | undefined>(
+    (worst, w) => (worst === undefined || w.percent > worst.percent ? w : worst),
+    undefined
+  );
+}
+
+/**
+ * Whether the account is out of the queue only because of its own hand-over limit:
+ * a limit has reached it, but none is actually used up. Raising the limit brings the
+ * account back; waiting for a reset is not needed.
+ */
+export function reachedOwnLimit(acc: AutoSwitchAccount): boolean {
+  const cap = switchOutPercentOf(acc);
+  if (cap >= EXHAUSTED_PERCENT) return false;
+  const busiest = busiestWindow(acc);
+  return busiest !== undefined && busiest.percent >= cap && busiest.percent < EXHAUSTED_PERCENT;
+}
+
 /** The limits of `acc` that have reached its hand-over limit. */
 export function spentWindows(acc: AutoSwitchAccount, cap = switchOutPercentOf(acc)): ProposeWindow[] {
   return windowsOf(acc).filter((w) => w.percent >= cap);

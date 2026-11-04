@@ -5,6 +5,8 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { AccountStore } from "./accountStore";
 import { AccountWindowService } from "./accountWindow";
+import { busiestWindow, reachedOwnLimit, switchOutPercentOf } from "./autoSwitch";
+import { autoSaveDecision } from "./autoSave";
 import { AutoSwitchController, readAutoSwitchSettings } from "./autoSwitchService";
 import { BrowserOAuthLogin } from "./browserOAuth";
 import {
@@ -165,7 +167,44 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   context.subscriptions.push({ dispose: () => clearInterval(currentUsageTimer) });
 
-  let notifiedUnsavedKey: string | undefined;
+  // A login Claude Code starts using is saved on its own, so logging in is all the
+  // user has to do. Each login is attempted once: a failed one waits for a new login
+  // instead of asking again on every poll.
+  let autoSaveAttempted: string | undefined;
+  let autoSaving: Promise<void> | undefined;
+  const autoSaveCurrentLogin = (state: CurrentAccountState): void => {
+    const decision = autoSaveDecision(
+      { loggedIn: state.loggedIn, ownerId: state.ownerId, identity: state.unsavedIdentity },
+      {
+        enabled: config().get<boolean>("autoSaveNewAccounts", true),
+        attempted: autoSaveAttempted,
+      }
+    );
+    if (!decision.save || autoSaving) {
+      return;
+    }
+    autoSaveAttempted = decision.key;
+    autoSaving = switchService
+      .captureCurrent()
+      .then(async (res) => {
+        if (!res.ok) {
+          // Leave the panel's Save button to it, and say why only once.
+          vscode.window.showWarningMessage(res.message);
+          return;
+        }
+        if (res.createdId) {
+          offerRename(res.createdId, `Saved "${store.get(res.createdId)?.label ?? "account"}".`);
+          await poller.pollOne(res.createdId, true);
+        }
+        await synchronizeCurrentProfile();
+        refreshUI();
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        autoSaving = undefined;
+      });
+  };
+
   const applyCurrentState = (state: CurrentAccountState) => {
     profileActivity.setActiveProfile(store.getActiveId());
     statusBar.setUnsavedIdentity(state.unsavedIdentity);
@@ -173,23 +212,10 @@ export function activate(context: vscode.ExtensionContext): void {
     lastCurrentState = state;
     currentUnsaved = Boolean(state.loggedIn && !state.ownerId);
     void refreshCurrentUsage(currentUnsaved);
-    const key = state.unsavedIdentity ? identityLabel(state.unsavedIdentity) : undefined;
-    if (key && key !== notifiedUnsavedKey) {
-      notifiedUnsavedKey = key;
-      void vscode.window
-        .showInformationMessage(
-          `Claude Code is logged in as ${key}, which is not saved as a profile yet.`,
-          "Save as profile"
-        )
-        .then((choice) => {
-          if (choice === "Save as profile") {
-            void vscode.commands.executeCommand("claudeAutoSwitch.addCurrentAccount");
-          }
-        });
+    if (state.ownerId || !state.loggedIn) {
+      autoSaveAttempted = undefined; // a later login is attempted again
     }
-    if (!key) {
-      notifiedUnsavedKey = undefined;
-    }
+    autoSaveCurrentLogin(state);
   };
 
   const synchronizeCurrentProfile = async (options: { retryFailed?: boolean } = {}) => {
@@ -774,6 +800,56 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
+  /**
+   * Before an account past its own hand-over limit is kept active, asks for a higher
+   * limit (or for confirmation when nothing is left to raise). Returns false when the
+   * user backed out, so the account is not marked.
+   */
+  const raiseHandOverLimitFor = async (profile: AccountProfile): Promise<boolean> => {
+    const account = {
+      id: profile.id,
+      label: profile.label,
+      switchOutPercent: profile.switchOutPercent,
+      windows: profile.lastUsage?.windows ?? [],
+    };
+    const busiest = busiestWindow(account);
+    if (!busiest) {
+      return true;
+    }
+    const cap = switchOutPercentOf(account);
+    if (busiest.percent < cap) {
+      return true; // still inside its own limit
+    }
+
+    if (!reachedOwnLimit(account)) {
+      // The limit is genuinely used up; a higher hand-over limit would change nothing.
+      const choice = await vscode.window.showWarningMessage(
+        `"${profile.label}" has no ${busiest.label} left.`,
+        { modal: true, detail: "Kept active, it holds the account and waits for the reset instead of switching." },
+        "Keep active anyway"
+      );
+      return choice === "Keep active anyway";
+    }
+
+    const lowest = Math.floor(busiest.percent) + 1;
+    const answer = await vscode.window.showInputBox({
+      title: `Keep "${profile.label}" active`,
+      prompt: `Its ${busiest.label} is at ${busiest.percent}%, past the ${cap}% hand-over limit. Raise the limit to keep using this account.`,
+      value: String(Math.max(lowest, Math.min(100, cap + 10))),
+      validateInput: (text) => {
+        const value = Number(text.trim());
+        return Number.isInteger(value) && value >= lowest && value <= 100
+          ? undefined
+          : `Enter a whole number between ${lowest} and 100.`;
+      },
+    });
+    if (answer === undefined) {
+      return false;
+    }
+    await store.setSwitchOutPercent(profile.id, Number(answer.trim()));
+    return true;
+  };
+
   context.subscriptions.push(
     vscode.commands.registerCommand("claudeAutoSwitch.setSwitchOutLimit", async (id?: string) => {
       const targetId = id ?? (await pickAccount(store, "Set an account's hand-over limit…"));
@@ -821,6 +897,11 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
       const keep = !profile.keepActive;
+      // Keeping an account active that is already past its own hand-over limit would
+      // hold an account auto-switching had just handed over: raise the limit first.
+      if (keep && !(await raiseHandOverLimitFor(profile))) {
+        return;
+      }
       const previous = keep ? store.keptActive() : undefined;
       await store.setKeepActive(targetId, keep);
       refreshUI();

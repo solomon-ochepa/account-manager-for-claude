@@ -6,143 +6,139 @@
 
 ![Claude Auto Switch animation](media/claude-auto-switch-animation.gif)
 
-**Run several Claude subscriptions in Claude Code and switch between them in one click.** See how
-much of every account's limits is left, and let the extension tell you which account to use next.
+**Auto switch your Claude accounts, and stop thinking about which one is active.**
+The extension watches every account's limits and moves Claude Code to the next account by itself —
+starting with the one whose weekly limit resets soonest, because capacity you don't spend before a
+reset is gone. Switching by hand, live limits for every account, usage analytics and an
+availability calendar come with it.
 
 > **Note:** Not affiliated with, endorsed by, or supported by Anthropic.
 
 ![The accounts panel: live limits, colors, filters, sorting, and next-account proposals](docs/panel.gif)
 
-## Highlights
+## What it does
 
-- **One-click switching.** Move between any number of saved accounts from the panel, the status
-  bar, or the command palette. Changed your mind? **Undo last switch** puts the previous one back.
-- **Every account's limits, live.** The 5-hour, weekly, and model-specific (e.g. Fable) limits of
-  all your accounts, each with the time until it resets. Same data as Claude Code's `/usage`.
-- **It picks your next account.** Proposals rank your other accounts by the capacity you would
-  lose soonest, and pop up on their own when the active account runs out.
-- **Or switches for you.** Auto-switch moves to the next account by itself when the active one
-  runs out, taking the account whose weekly limit resets soonest.
-- **No more daily logins.** Tokens are refreshed exactly the way Claude Code refreshes them, under
+- **Switches accounts for you.** The account whose weekly limit resets soonest is kept active, and
+  the extension hands over as soon as another account takes that place — or only when the active
+  one runs out, if you prefer a pure failover.
+- **Checks before it commits.** The chosen account's usage is read again right before the switch,
+  and an account that turns out to be spent, expired or busy elsewhere is skipped and reconsidered
+  on the next round.
+- **Leaves you in charge of each account.** Exclude one from automation, give one its own
+  hand-over percent, or hold one active and pause automation entirely.
+- **Shows every account's limits, live.** The 5-hour, weekly, and model-specific (e.g. Fable)
+  windows, each with the time until it resets. Same data as Claude Code's `/usage`.
+- **Keeps logins alive.** Tokens are refreshed exactly the way Claude Code refreshes them, under
   its own lock, so neither side is ever left holding a spent token.
-- **See what you actually use.** Usage analytics show how much of each limit's capacity you used
-  before it reset, per account, per limit, and over time.
-- **Plan ahead.** The availability calendar shows when each account was, and will be, usable, by
-  week or hour by hour.
-- **One window per account.** Open the same project in separate VS Code windows, each logged in
-  to a different account.
+- **Tells you what you actually used.** Analytics show how much of each limit's capacity you spent
+  before it reset; the calendar shows when each account was, and will be, usable.
+- **One window per account**, when you want to run two accounts side by side.
 - **Private by design.** No telemetry. Network requests go only to Anthropic, and saved accounts
   stay in VS Code's encrypted SecretStorage.
 
 ## Install
 
-- Download the latest `.vsix` from [Releases](https://github.com/solomon-ochepa/claude-auto-switch/releases/latest).
-- **VS Code:** `code --install-extension account-manager-for-claude-<version>.vsix`, or
-  **Extensions: Install from VSIX…** in the command palette. Install it from inside the editor,
-  not by double-clicking the file in Explorer: that may open Visual Studio's installer, which
-  cannot install VS Code extensions.
-- **VSCodium, Cursor, and other editors** take the same `.vsix`.
-- **Requires** VS Code 1.85 or newer on Windows, macOS, or Linux.
+1. Download the latest `.vsix` from
+   [Releases](https://github.com/solomon-ochepa/claude-auto-switch/releases/latest).
+2. **VS Code:** `code --install-extension claude-auto-switch-<version>.vsix`, or
+   **Extensions: Install from VSIX…** in the command palette.
+3. **VSCodium, Cursor and other editors** take the same file.
+
+Install it from inside the editor, not by double-clicking the file in Explorer: that may open
+Visual Studio's installer, which cannot install VS Code extensions. **Requires** VS Code 1.85 or
+newer on Windows, macOS, or Linux.
 
 ## Getting started
 
-1. Log in to Claude Code with your first account.
-2. Open the **Claude Auto Switch** panel from the activity bar and click **Save this account**.
-3. Click **Add account** and log in with another account. The current account stays active.
-4. Switch with the blue **Switch** button on a card, the status bar, or `Claude: Switch account`.
-5. **Reload the window after switching** so Claude Code picks up the new account. The extension
-   offers to do it for you, or turn on `autoReloadAfterSwitch`.
+1. Log in to Claude Code with your first account. It is **saved automatically** — the panel shows
+   it with an offer to rename it. (`autoSaveNewAccounts` turns that off, leaving a **Save** button.)
+2. Open the **Claude Auto Switch** panel from the activity bar, click **Add account**, and log in
+   with another account. That one is saved on its own too, and the current account stays active.
+3. That's it — automation is on by default. The panel lists accounts next-to-be-used first, and
+   `Claude: Show the auto-switch log` says what it decided and why.
+4. Switching replaces Claude Code's login, so **the window is reloaded afterwards**. The extension
+   asks; `autoReloadAfterSwitch` does it without asking.
 
 > **Never use `/logout` to change accounts.** It revokes that login on Anthropic's side, and the
 > saved copy dies with it. Use **Switch**, **Add account**, or `/login` instead.
 
-## Features
+## Auto-switch
 
-### Accounts panel
+On by default; `autoSwitch.enabled` turns it off. A round runs after every usage check, when a
+used-up limit resets, at startup, and on demand via
+`Claude: Switch to the next account now (auto-switch)`.
 
-- **Save and add accounts.** A login that isn't saved yet appears in its own box with a **Save**
-  button. **Add account** logs in to another account without touching the current one.
-- **Live usage limits** for the 5-hour, weekly, and model-specific windows, with reset times.
+### How it picks
+
+- **The nearest weekly reset goes first.** Capacity that isn't used before a limit resets is lost,
+  so the account whose weekly (7-day) limit resets soonest is taken first. Only weekly dates
+  count: the 5-hour window refills several times a day, so it says nothing about which account to
+  spend this week, and it is kept out of both the order and the tie-break between accounts sharing
+  a reset date. Those are separated by how much of the *weekly* limit is left.
+- **`autoSwitch.order` offers other rules:** the soonest reset of any limit (the 5-hour window
+  included), the capacity that would be lost soonest, the most usage left, or your own list order.
+- **`autoSwitch.when` decides when it acts.** `always` (the default) keeps the first account of
+  that order active and hands over as soon as another takes its place. `exhausted` waits until the
+  active account runs out of a limit.
+- **Availability is confirmed, not assumed.** The chosen account's usage is fetched again right
+  before the switch, and `autoSwitch.minAvailablePercent` sets how much of every limit it must
+  still have.
+- **A skipped account comes back.** One that turns out to be used up, whose login expired, that is
+  in use in another window, or whose switch fails for any other reason is passed over and the next
+  is tried. The skip lasts only until the next round, which confirms the account again and takes it
+  as soon as it qualifies — the card shows **Skipped** with the reason meanwhile.
+- **Every decision is logged** to the **Claude Auto Switch** output channel: the account taken, the
+  one kept, or why none could be — `No other account is available; the first one is usable again in
+  1 h.`
+
+### Per-account controls
+
+Each card's buttons and **⋯** menu decide how that account takes part.
+
+| Control | Where | What it does |
+| --- | --- | --- |
+| **Keep active** | ★ button beside **Switch** | Holds this account: automation takes it and moves nowhere else, waiting rather than handing over when its limits run out. The star fills in and turns green. Beats the account's own opt-out, its hand-over limit and the minimum. One account at a time; click again to release. |
+| **Hand-over limit** | **Set a hand-over limit…** in the **⋯** menu | A percent of your own: once any limit of this account reaches it, automation treats the account as spent and takes the next in the queue, without waiting for the limit to be used up. The card carries a shield badge with the percent. |
+| **Exclude** | **Exclude from auto-switching** in the **⋯** menu | Never switched to automatically; marked **No auto-switch**. Manual **Switch** still works. |
+
+Holding an account that has already reached its own hand-over limit asks for a higher limit first,
+so it stays a deliberate choice rather than an argument with a setting. If that limit is genuinely
+used up, raising it would change nothing, so it asks to confirm instead and then waits for the
+reset.
+
+The panel follows the same order, so the account used next is at the top. Choosing a sort yourself
+overrides that, and `autoSwitch.sortList` turns it off.
+
+## The accounts panel
+
+- **Accounts save themselves.** A login Claude Code starts using is saved as soon as it appears,
+  with an offer to rename it; each login is attempted once, so a broken one can't nag. With
+  `autoSaveNewAccounts` off, it waits in its own box behind a **Save** button instead.
+  **Add account** logs in to another account without touching the current one.
+- **Live usage limits** for the 5-hour, weekly and model-specific windows, with reset times.
 - **Colors tell you the state.** The icon is green while an account has limit left, orange once a
-  limit is used up, and gray when usage is unknown. The name, and the active account in the status
-  bar, is green while the account can start sessions and red once the 5h or the general weekly
-  limit is used up. A used-up model limit such as Fable blocks only that model, so it stays green.
-  A used-up limit's reset time is yellow under 10 minutes, orange under an hour, and red beyond a
-  day.
-- **Filter and sort.** Filter by text, availability, plan (Pro, Max, Team, ...), or model limit.
-  Sort by availability, usage left, next reset, plan, name, or your own drag-and-drop order.
-- **Stays simple when you need it to.** Filters, sorting, and statistics appear once you have two
-  accounts. With one account, the panel shows just its card.
-- **Status bar** with the active account and its usage, colored green, orange, or red.
-- **Notifications** when a used-up limit is available again, with a **Switch** button.
+  limit is used up, gray when usage is unknown. The name, and the active account in the status bar,
+  is green while the account can start sessions and red once the 5h or the general weekly limit is
+  used up — a used-up model limit such as Fable blocks only that model, so it stays green. A
+  used-up limit's reset time is yellow under 10 minutes, orange under an hour, red beyond a day.
+- **Filter and sort.** By text, availability, plan (Pro, Max, Team, …) or model limit; sort by the
+  auto-switch order, availability, usage left, next reset, plan, name, or drag-and-drop.
+- **Stays simple.** Filters, sorting and statistics appear once you have two accounts.
+- **Status bar** with the active account and its usage. **Notifications** when a used-up limit is
+  available again, with a **Switch** button.
+- **Undo last switch** puts the previous account back.
 
-### Account proposals
+### Switching by hand
 
-- **Propose** and **Propose for Fable** list the three best other accounts for that limit, each
-  with its limit bar, a one-line reason, and a **Switch** button.
-- Accounts that would lose capacity soonest come first: the ones with the most available percent
-  per hour until their limit resets. Accounts with a used-up limit or an expired login are skipped.
-- When the active account's limit runs out, the next accounts are proposed automatically:
+**Propose** and **Propose for Fable** list the three best other accounts for that limit, each with
+its limit bar, a one-line reason and a **Switch** button. Accounts that would lose capacity soonest
+come first — the most available percent per hour until the limit resets — and used-up or expired
+accounts are skipped. When the active account's limit runs out, the next accounts are proposed on
+their own:
 
-  ![When the active account's limit runs out, the next accounts are proposed](docs/propose-auto.gif)
+![When the active account's limit runs out, the next accounts are proposed](docs/propose-auto.gif)
 
-### Auto-switch
-
-The extension chooses which account Claude Code uses. It is on by default; `autoSwitch.enabled`
-turns it off.
-
-- **The account the order puts first is kept active**, so the capacity that resets soonest is the
-  one being spent — it switches as soon as another account takes that place, not only when the
-  active account runs out. `autoSwitch.when` = `exhausted` makes it a pure failover instead: the
-  active account keeps the session until one of its limits runs out.
-- **Give an account a hand-over limit.** **Set a hand-over limit…** on a card's **⋯** menu takes a
-  percent: once any of that account's limits reaches it, auto-switching treats the account as
-  spent and takes the next one in the queue, without waiting for the limit to be used up. The card
-  carries a shield badge with the percent, and the log says `"X" reached its 80% hand-over limit.` before naming the
-  account it moved to. Leave the box empty to use the account until a limit is actually used up.
-- **Keep one account active to override it.** The **star** button beside **Switch** on a card holds
-  that account: auto-switching takes it, then moves nowhere else — not even when its limits run
-  out, where it waits and says when the account is usable again. The star fills in and turns green
-  while the account is held, the mark beats the account's own opt-out, its hand-over limit and the
-  minimum, only one account can carry it, and clicking the star again hands the choice back.
-- **The nearest reset goes first.** Capacity that is not used before a limit resets is lost, so
-  the account whose weekly (7-day) limit resets soonest is taken first. Only weekly dates count:
-  the 5-hour window refills several times a day, so it says nothing about which account to spend
-  this week, and it is left out of the order and of the tie-break between accounts that reset on
-  the same date. `autoSwitch.order` chooses another rule: the soonest reset of any limit (which
-  does count the 5-hour window), the capacity that would be lost soonest, the most usage left, or
-  your own list order.
-- **Availability is checked before the switch**, not just taken from the last poll: the account's
-  usage is read once more, and `autoSwitch.minAvailablePercent` sets how much of every limit it
-  must still have.
-- **A skipped account comes back.** An account that turns out to be used up, whose login expired,
-  that is in use in another window, or that the switch refuses for any other reason, is passed
-  over and the next one is tried. The skip lasts until the next check, which confirms the account
-  again and takes it as soon as it qualifies — the panel shows it as **Skipped** meanwhile.
-- **Every account takes part**, until you exclude it from the **⋯** menu on its card
-  (`Exclude from auto-switching`). Excluded accounts are marked **No auto-switch** and are never
-  switched to automatically; **Switch** by hand still works.
-- **The list follows the same order**, so the account that is used next is at the top. Choosing a
-  sort in the panel overrides it, and `autoSwitch.sortList` turns it off.
-- `Claude: Switch to the next account now (auto-switch)` runs one round on demand, even while
-  auto-switching is off. Every decision — the account taken, the one kept, or why none could be —
-  is written to the **Claude Auto-switch** output channel (`Claude: Show the auto-switch log`).
-
-Switching replaces Claude Code's login, so the window still has to be reloaded afterwards —
-`autoReloadAfterSwitch` does that without asking.
-
-### Logins that stay valid
-
-- **Token refresh that plays nicely with Claude Code**, so you don't have to log in again every
-  day. See [Token handling](#token-handling).
-- **Browser login** works without the Claude Code CLI. **Reauthorize** repairs a broken saved
-  login without touching the active account.
-- **Independent windows** run the same project in separate VS Code windows, one account each. See
-  [Parallel windows](#parallel-windows).
-- **Backup and restore** the account list in a password-protected ZIP. See
-  [Backup and restore](#backup-and-restore).
-
-### Usage analytics
+## Usage analytics
 
 ![Usage analytics: bar charts by level, used or available, legend, folding, capacity utilization](docs/analytics.gif)
 
@@ -151,41 +147,56 @@ limits once a minute. Readings stay on this computer and are kept for 90 days by
 
 Open **Show usage analytics** (the chart icon in the panel's title bar) to see:
 
-- **Charts per limit** (5h, weekly, Fable, ...) over 1 day, 1 week, 1 month, 3 months, all time,
-  or a custom range. Show **Used %** or **Available %** as bar, stacked bar, line, or area charts.
-  Bars are green below 60% used, orange from 60%, and red from 80%.
+- **Charts per limit** (5h, weekly, Fable, …) over 1 day, 1 week, 1 month, 3 months, all time, or a
+  custom range. Show **Used %** or **Available %** as bar, stacked bar, line or area charts. Bars
+  are green below 60% used, orange from 60%, red from 80%.
 - **A shared legend** with a checkbox per account that shows or hides it in every chart.
 - **Capacity utilization:** how much of the capacity each limit offered you actually used. A 5h
   limit refills every 5 hours and a weekly limit every 7 days, so whatever isn't used before a
-  reset is lost. You get an overall figure, a figure per limit and per account, and charts over
-  time.
-- **By calendar period:** the same utilization grouped by weekday, hour of day, week, or month,
-  with the best and lowest periods called out.
+  reset is lost. You get an overall figure, one per limit and per account, and charts over time.
+- **By calendar period:** the same utilization grouped by weekday, hour of day, week or month, with
+  the best and lowest periods called out.
 
 Charts fold into a compact sparkline, show guide lines on hover, and refresh every 2 minutes.
 **Delete collected usage history** removes all readings.
 
-### Availability calendar
+## Availability calendar
 
 ![Availability calendar: week and day views, limit lanes, filters, and the cards below](docs/calendar.gif)
 
 Open **Show account availability calendar** (the calendar icon in the title bar) to see when each
 account can be used, across a week or hour by hour for a single day.
 
-- Pick which limits to show (5h, weekly, Fable, ...). Each one gets its own lane per account.
-- Green is available, amber is 80%+ used, red is limited, and gray is no data. Markers show reset
+- Pick which limits to show. Each one gets its own lane per account.
+- Green is available, amber is 80%+ used, red is limited, gray is no data. Markers show reset
   times, and a red line marks now.
-- The past comes from collected usage history. The future is projected from the latest reading
-  and drawn striped.
-- Filter and sort just like in the panel, and drag rows to reorder them in custom order.
+- The past comes from collected usage history; the future is projected from the latest reading and
+  drawn striped.
+- Filter and sort as in the panel, and drag rows to reorder them.
 - A **Right now** card per account shows its current state, how usable it was in the period, how
   often it ran out, and a **Switch** button.
+
+## Logins that stay valid
+
+- **Token refresh that plays nicely with Claude Code**, so you don't have to log in again every
+  day. See [Token handling](#token-handling).
+- **Browser login** works without the Claude Code CLI. **Reauthorize** repairs a broken saved login
+  without touching the active account.
+- **Independent windows** run the same project in separate VS Code windows, one account each. See
+  [Parallel windows](#parallel-windows).
+- **Backup and restore** the account list in a password-protected ZIP. See
+  [Backup and restore](#backup-and-restore).
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
 | `Claude: Switch account` | Pick an account, with its usage limits |
+| `Claude: Switch to the next account now (auto-switch)` | Run one auto-switch round now |
+| `Claude: Keep an account active (pause auto-switching)` | Hold one account until you release it |
+| `Claude: Set an account's auto-switch hand-over limit` | Hand an account over at a percent of its own |
+| `Claude: Include or exclude an account in auto-switching` | Opt an account in or out |
+| `Claude: Show the auto-switch log` | Open the log of auto-switch decisions |
 | `Claude: Save current account as profile` | Save the account Claude Code is logged in with |
 | `Claude: Add another account (isolated login)` | Log in to another account without touching the current one |
 | `Claude: Refresh accounts, current login and limits` | Re-read everything now |
@@ -199,21 +210,27 @@ account can be used, across a week or hour by hour for a single day.
 | `Claude: Reauthorize account profile` | Log a saved account in again, without touching the active one |
 | `Claude: Complete profile reauthorization` | Finish a reauthorization |
 | `Claude: Undo last switch` | Restore the previous account |
-| `Claude: Switch to the next account now (auto-switch)` | Run one auto-switch round now |
-| `Claude: Set an account's auto-switch hand-over limit` | Hand an account over at a percent of its own |
-| `Claude: Keep an account active (pause auto-switching)` | Hold one account until you release it |
-| `Claude: Include or exclude an account in auto-switching` | Opt an account in or out |
-| `Claude: Show the auto-switch log` | Open the log of auto-switch decisions |
 | `Claude: Rename account profile` / `Remove account profile` | Manage saved accounts |
 | `Claude: Back up account list (password-protected ZIP)` | Save all accounts to an encrypted ZIP |
 | `Claude: Restore account list from backup` | Merge a backup into the list |
 | `Claude: Delete collected usage history` | Remove all usage readings |
-| `Claude: About Claude Auto Switch` | Version, author, and project information |
+| `Claude: About Claude Auto Switch` | Version, author and project information |
 
 ## Settings
 
 All settings start with `claudeAutoSwitch.`, and the Settings editor groups them under
-**Accounts and limits**, **Switching**, **Auto-switch**, **Usage history**, and **Claude Code**.
+**Auto-switch**, **Accounts and limits**, **Switching**, **Usage history** and **Claude Code**.
+
+### Auto-switch
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| `autoSwitch.enabled` | `true` | Change accounts on its own |
+| `autoSwitch.when` | `always` | `always` keeps the first account of the order active; `exhausted` only switches once the active account runs out |
+| `autoSwitch.order` | `weeklyReset` | Which account comes first: `weeklyReset`, `anyReset`, `urgency`, `remaining` or `listOrder` |
+| `autoSwitch.minAvailablePercent` | `1` | How much (%) of every limit an account must have left to be switched to |
+| `autoSwitch.notify` | `true` | Notify which account it moved to, and why |
+| `autoSwitch.sortList` | `true` | Sort the panel by the auto-switch order, next account first |
 
 ### Accounts and limits
 
@@ -229,18 +246,8 @@ All settings start with `claudeAutoSwitch.`, and the Settings editor groups them
 
 | Setting | Default | Description |
 | --- | --- | --- |
+| `autoSaveNewAccounts` | `true` | Save a Claude Code login as an account as soon as it appears |
 | `autoReloadAfterSwitch` | `false` | Reload the window automatically after switching |
-
-### Auto-switch
-
-| Setting | Default | Description |
-| --- | --- | --- |
-| `autoSwitch.enabled` | `true` | Change accounts on its own |
-| `autoSwitch.when` | `always` | `always` keeps the first account of the order active; `exhausted` only switches once the active account runs out |
-| `autoSwitch.order` | `weeklyReset` | Which account comes first: `weeklyReset`, `anyReset`, `urgency`, `remaining`, or `listOrder` |
-| `autoSwitch.minAvailablePercent` | `1` | How much (%) of every limit an account must have left to be switched to |
-| `autoSwitch.notify` | `true` | Notify which account auto-switching moved to, and why |
-| `autoSwitch.sortList` | `true` | Sort the panel by the auto-switch order, next account first |
 
 ### Usage history
 
@@ -262,8 +269,8 @@ All settings start with `claudeAutoSwitch.`, and the Settings editor groups them
 
 ## How it works
 
-- **Switching** replaces Claude Code's stored login and the cached account in `~/.claude.json`.
-  The login is `~/.claude/.credentials.json` on Windows and Linux, and the `Claude Code-credentials`
+- **Switching** replaces Claude Code's stored login and the cached account in `~/.claude.json`. The
+  login is `~/.claude/.credentials.json` on Windows and Linux, and the `Claude Code-credentials`
   item in the login Keychain on macOS. A backup copy makes the switch undoable. Saved accounts are
   kept in VS Code's encrypted SecretStorage.
 - **Usage** comes from Anthropic's unofficial usage endpoint, the same source as `/usage`. Because
@@ -277,8 +284,8 @@ Claude Code's refresh tokens work only once: each refresh issues a new token and
 old one. If two programs share a login and one of them refreshes, the other is logged out. To
 prevent this, the extension:
 
-- takes Claude Code's own refresh lock before refreshing, so Claude Code waits and picks up the
-  new token;
+- takes Claude Code's own refresh lock before refreshing, so Claude Code waits and picks up the new
+  token;
 - writes every new token back to all local copies and to the saved account;
 - always uses the newest token it can find, and refreshes only when the current one is expiring;
 - watches Claude Code's stored login (`.credentials.json`, or the Keychain on macOS) and picks up
@@ -286,13 +293,13 @@ prevent this, the extension:
 - saves the account you switch away from first, so it keeps its latest token;
 - never retries a token the server has rejected.
 
-Each login is independent, so logging in on another computer doesn't affect this one. Saved
-accounts are stored per machine: add them on each computer, or move them with a backup.
+Each login is independent, so logging in on another computer doesn't affect this one. Saved accounts
+are stored per machine: add them on each computer, or move them with a backup.
 
 ### Parallel windows
 
-By default, all VS Code windows share one Claude Code login. **Open independent account window**
-(or the **Window** item on a card) opens the project in a new window with its own config directory
+By default, all VS Code windows share one Claude Code login. **Open independent account window** (or
+the **Window** item on a card) opens the project in a new window with its own config directory
 through `CLAUDE_CONFIG_DIR`, so you can run one window per account. The extension won't open a
 second window for the same account, because both would spend the same refresh token.
 
@@ -303,36 +310,40 @@ AES-256 and your password, so 7-Zip can open it too. It also stores your panel c
 (except `credentialsPath`).
 
 - **It contains login tokens.** Anyone with the file and the password can use those accounts.
-- Restoring merges into the current list: it adds missing accounts and uses the backup's tokens
-  only when they are newer.
+- Restoring merges into the current list: it adds missing accounts and uses the backup's tokens only
+  when they are newer.
 - Tokens in an old backup may already be spent. Use **Reauthorize** on those accounts.
 - Don't use the same restored account on two machines at once.
 
 ## Troubleshooting
 
-The Claude Code CLI is optional for switching, usage checks, and browser login. Only logging in
-from the terminal needs it. If the extension says `claude` is not recognized:
+**Nothing switched.** Open `Claude: Show the auto-switch log`: every round says what it decided.
+`stay` means the active account is still the one the order wants; `wait` names what it is waiting
+for; `failed` names the account that refused and why.
+
+**`claude` is not recognized.** The CLI is optional — switching, usage checks and browser login
+work without it, and only logging in from the terminal needs it.
 
 1. Run `where claude` in PowerShell or CMD (`which claude` on macOS and Linux).
 2. If it's found, restart VS Code so it picks up the updated PATH.
-3. If it isn't found, install the CLI. On Windows: `irm https://claude.ai/install.ps1 | iex`.
-   On macOS and Linux: `curl -fsSL https://claude.ai/install.sh | bash`
+3. If it isn't, install it. Windows: `irm https://claude.ai/install.ps1 | iex`. macOS and Linux:
+   `curl -fsSL https://claude.ai/install.sh | bash`
 4. If VS Code still can't find it, set `claudeCommand` to the full path, e.g.
    `C:\Users\you\AppData\Roaming\npm\claude.cmd` or `/Users/you/.local/bin/claude`.
 
-On macOS, Claude Code keeps its login in the login Keychain. If switching reports that the
-Keychain could not be read or updated, unlock the login keychain (Keychain Access) and try again.
+**macOS Keychain.** Claude Code keeps its login in the login Keychain. If switching reports that the
+Keychain could not be read or updated, unlock the login keychain in Keychain Access and try again.
 
 ## Privacy and security
 
-- **No telemetry.** The extension collects no data and sends nothing to its author, publisher,
-  or any third-party server.
-- **Network requests go only to Anthropic**, for token refresh, usage limits, and identifying an
+- **No telemetry.** The extension collects no data and sends nothing to its author, publisher or any
+  third-party server.
+- **Network requests go only to Anthropic**, for token refresh, usage limits and identifying an
   account (`/api/oauth/profile`, the same call Claude Code makes after login).
 - **Credentials stay local.** Saved accounts are kept in VS Code's encrypted SecretStorage.
   Credentials are written only to local Claude Code config folders and are never logged.
-- Anyone with access to your user profile can read Claude Code's credential files, so protect
-  your computer account.
+- Anyone with access to your user profile can read Claude Code's credential files, so protect your
+  computer account.
 - Use it only with **your own** accounts. The usage endpoint and the token refresh are unofficial
   and may change on Anthropic's side at any time.
 
@@ -350,42 +361,39 @@ Requires [Node.js](https://nodejs.org/) 18+ and VS Code 1.85+. Run `npm install`
 | `npm run build:vsix` | Build the installable `.vsix` |
 | `npm run install:vsix` | Install the built `.vsix` into VS Code |
 | `npm run deploy` | Build and install in one step |
-| `npm run publish` / `release` | Check, then publish to the Marketplace (`release` also bumps the patch version) |
 
 - **Run and debug:** open the folder and press **F5** to start an Extension Development Host. Run
   **Developer: Reload Window** there after changes, and **Developer: Open Webview Developer Tools**
   to debug the pages. The development host uses your real Claude credentials, so be careful with
-  Switch, Remove, and logins.
+  Switch, Remove and logins.
 - **Webview code:** `webview/*.js` is bundled into `dist/webview/`, so rebuild after editing it.
-  Shared logic lives in `src/`.
-- **Install the `.vsix` from VS Code**, not by double-clicking it in Explorer: that may open
-  Visual Studio's installer, which can't install VS Code extensions.
+  Shared logic lives in `src/`; the ranking rules are plain functions in `src/autoSwitch.ts`, with
+  tests in `test/smoke.ts`.
 
 ### Releasing
 
 1. Update `CHANGELOG.md` and the version in `package.json`.
 2. `npm run prepublish:check` (type check + tests), then `npm run build:vsix`.
-3. Tag the commit (`v<version>`) and attach the `.vsix` to a GitHub release.
+3. Tag the commit `v<version>` and attach the `.vsix` to a GitHub release.
 
 Publishing to the VS Code Marketplace or [Open VSX](https://open-vsx.org/) additionally needs a
-publisher account and a token (`vsce publish`, `ovsx publish`); neither is set up for this fork
-yet, so releases are `.vsix` downloads.
+publisher account and a token (`vsce publish`, `ovsx publish`); neither is set up yet, so releases
+are `.vsix` downloads.
 
 ## Credits
 
 Maintained by [Solomon Ochepa](https://github.com/solomon-ochepa).
 
 Forked from [tursoft/account-manager-for-claude](https://github.com/tursoft/account-manager-for-claude)
-by Muhammet Tursak, which redesigned the panel and added usage analytics, the availability
-calendar, and account proposals. That in turn builds on
+by Muhammet Tursak, which redesigned the panel and added usage analytics, the availability calendar
+and account proposals. That in turn builds on
 [KrzysztofZander/claude-account-switcher](https://github.com/KrzysztofZander/claude-account-switcher)
-by Krzysztof Zander, the original account-switching core. Thanks to both for the work this
-builds on.
+by Krzysztof Zander, the original account-switching core. Thanks to both for the work this builds
+on.
 
-This fork continues from the upstream `main` branch (1.0.8) and adds auto-switching. It is
+This fork continues from the upstream `main` branch (1.0.8) and adds the automation. It is
 maintained independently and is not affiliated with the earlier maintainers.
 
 ## License
 
 MIT
-

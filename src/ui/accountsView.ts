@@ -19,8 +19,8 @@ interface CurrentSessionView {
 /** Links the About sheet may open; anything else from the webview is ignored. */
 const ABOUT_LINKS = new Set([
   "https://github.com/solomon-ochepa",
-  "https://github.com/solomon-ochepa/account-manager-for-claude",
-  "https://github.com/solomon-ochepa/account-manager-for-claude/issues",
+  "https://github.com/solomon-ochepa/claude-auto-switch",
+  "https://github.com/solomon-ochepa/claude-auto-switch/issues",
   "https://github.com/tursoft/account-manager-for-claude",
   "https://github.com/KrzysztofZander/claude-account-switcher",
 ]);
@@ -432,15 +432,15 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider {
       <button id="aboutClose" class="icon-btn about-close" title="Close" aria-label="Close"></button>
       <img class="about-logo" src="${iconUri}" alt="" />
       <h2 id="aboutTitle">Claude Auto Switch</h2>
+      <p class="about-byline"><a href="#" data-link="https://github.com/solomon-ochepa">Solomon Ochepa</a></p>
       <p class="about-version">Version <span id="aboutVersion"></span></p>
-      <p class="about-desc">Quickly switch between Claude accounts in Claude Code, with live usage limits.</p>
+      <p class="about-desc">Auto switch your Claude accounts; Claude Code uses the one whose limit
+        resets soonest.</p>
       <dl class="about-meta">
-        <dt>Author</dt>
-        <dd><a href="#" data-link="https://github.com/solomon-ochepa">Solomon Ochepa</a></dd>
         <dt>Source</dt>
-        <dd><a href="#" data-link="https://github.com/solomon-ochepa/account-manager-for-claude">solomon-ochepa/account-manager-for-claude</a></dd>
+        <dd><a href="#" data-link="https://github.com/solomon-ochepa/claude-auto-switch">solomon-ochepa/claude-auto-switch</a></dd>
         <dt>Issues</dt>
-        <dd><a href="#" data-link="https://github.com/solomon-ochepa/account-manager-for-claude/issues">Report a problem</a></dd>
+        <dd><a href="#" data-link="https://github.com/solomon-ochepa/claude-auto-switch/issues">Report a problem</a></dd>
       </dl>
       <p class="about-fork">
         Forked from
