@@ -2,7 +2,7 @@
   "name": "claude-auto-switch",
   "displayName": "Claude Auto Switch",
   "description": "Seamlessly switch between Claude accounts and subscriptions in Claude Code, with real-time usage limit tracking.",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "publisher": "solomon-ochepa",
   "author": {
     "name": "Solomon Ochepa",
@@ -136,6 +136,14 @@
         "title": "Claude: Switch to the next account now (auto-switch)"
       },
       {
+        "command": "claudeAutoSwitch.setSwitchOutLimit",
+        "title": "Claude: Set an account's auto-switch hand-over limit"
+      },
+      {
+        "command": "claudeAutoSwitch.toggleKeepActive",
+        "title": "Claude: Keep an account active (pause auto-switching)"
+      },
+      {
         "command": "claudeAutoSwitch.toggleAutoSwitch",
         "title": "Claude: Include or exclude an account in auto-switching"
       },
@@ -254,6 +262,12 @@
         },
         {
           "command": "claudeAutoSwitch.toggleAutoSwitch"
+        },
+        {
+          "command": "claudeAutoSwitch.toggleKeepActive"
+        },
+        {
+          "command": "claudeAutoSwitch.setSwitchOutLimit"
         }
       ]
     },

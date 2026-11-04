@@ -27,6 +27,17 @@ export const DEFAULT_AUTO_SWITCH_ORDER: AutoSwitchOrder = "weeklyReset";
 /** Accounts take part in auto-switching unless `autoSwitch` is explicitly false. */
 export interface AutoSwitchAccount extends ProposeAccount {
   autoSwitch?: boolean;
+  /**
+   * Marked to stay the account in use: auto-switching holds it and moves nowhere else
+   * until the mark is taken off. One account at a time.
+   */
+  keepActive?: boolean;
+  /**
+   * The account's own hand-over limit: once any of its limits reaches this percent,
+   * auto-switching treats it as spent and takes the next account in the queue. Unset
+   * means it is used until a limit is actually used up.
+   */
+  switchOutPercent?: number;
 }
 
 /**
@@ -66,6 +77,8 @@ export interface AutoSwitchSkip {
 export interface AutoSwitchPlan {
   /** `stay`: the active account is still usable. `switch`: take `target`. `wait`: nothing is usable. */
   action: "stay" | "switch" | "wait";
+  /** true when the plan follows an account marked to stay in use, not the order. */
+  held?: boolean;
   target?: AutoSwitchAccount;
   /** Every account that could be taken, best first. */
   ranked: AutoSwitchAccount[];
@@ -75,6 +88,20 @@ export interface AutoSwitchPlan {
 }
 
 const EXHAUSTED_PERCENT = 100;
+
+/**
+ * The percent at which auto-switching hands this account over: its own limit, or 100 —
+ * a limit that is actually used up. Values outside 1..100 are ignored.
+ */
+export function switchOutPercentOf(acc: AutoSwitchAccount): number {
+  const own = acc.switchOutPercent;
+  return typeof own === "number" && own > 0 && own <= EXHAUSTED_PERCENT ? own : EXHAUSTED_PERCENT;
+}
+
+/** The limits of `acc` that have reached its hand-over limit. */
+export function spentWindows(acc: AutoSwitchAccount, cap = switchOutPercentOf(acc)): ProposeWindow[] {
+  return windowsOf(acc).filter((w) => w.percent >= cap);
+}
 
 /** Opted in unless the account says otherwise. */
 export function takesPartInAutoSwitch(acc: AutoSwitchAccount): boolean {
@@ -98,14 +125,29 @@ function resetMs(w: ProposeWindow | undefined): number {
 
 /**
  * The reset of the account's weekly limit: the general one, or the soonest model-specific
- * weekly limit when the account reports no general one. Infinity when it has none.
+ * weekly limit when the account reports no general one. Infinity when it has none. The 5h
+ * window never counts, not even as a tie-break — a weekly date is what the order is about.
  */
 export function weeklyResetOf(acc: ProposeAccount): number {
-  const windows = windowsOf(acc);
-  const general = windows.find((w) => w.kind === "weekly_all");
+  const general = windowsOf(acc).find((w) => w.kind === "weekly_all");
   if (general) return resetMs(general);
-  const weekly = windows.filter((w) => w.kind.startsWith("weekly_")).map(resetMs);
+  const weekly = weeklyWindowsOf(acc).map(resetMs);
   return weekly.length ? Math.min(...weekly) : Infinity;
+}
+
+/** The account's weekly limits: the general one and any model-specific one (never the 5h window). */
+function weeklyWindowsOf(acc: ProposeAccount): ProposeWindow[] {
+  return windowsOf(acc).filter((w) => w.kind.startsWith("weekly"));
+}
+
+/**
+ * Percent left on the most used weekly limit; -1 when the account reports none. The 5h
+ * window is left out on purpose: it refills several times a day, so it says nothing about
+ * which account to spend this week.
+ */
+export function weeklyHeadroomOf(acc: ProposeAccount): number {
+  const weekly = weeklyWindowsOf(acc);
+  return weekly.length ? 100 - Math.max(...weekly.map((w) => w.percent)) : -1;
 }
 
 /** The soonest reset of any limit; Infinity when no reset time is known. */
@@ -124,11 +166,15 @@ export function urgencyScoreOf(acc: ProposeAccount, now: number): number {
  * Whether the account can be used right now: its login works, its usage is known, no
  * limit is used up, and at least `minAvailablePercent` of every limit is left.
  */
-export function availableNow(acc: ProposeAccount, minAvailablePercent = 0): boolean {
+export function availableNow(
+  acc: AutoSwitchAccount,
+  minAvailablePercent = 0,
+  cap = switchOutPercentOf(acc)
+): boolean {
   if (acc.needsReauthorization) return false;
   const windows = windowsOf(acc);
   if (windows.length === 0) return false;
-  if (windows.some((w) => w.percent >= EXHAUSTED_PERCENT)) return false;
+  if (windows.some((w) => w.percent >= cap)) return false;
   return headroomOf(acc) >= minAvailablePercent;
 }
 
@@ -148,10 +194,13 @@ export function compareByOrder(
   now = Date.now()
 ): (a: ProposeAccount, b: ProposeAccount) => number {
   const cmp: Record<AutoSwitchOrder, (a: ProposeAccount, b: ProposeAccount) => number> = {
-    weeklyReset: (a, b) => weeklyResetOf(a) - weeklyResetOf(b) || nextResetOf(a) - nextResetOf(b),
-    anyReset: (a, b) => nextResetOf(a) - nextResetOf(b),
-    urgency: (a, b) => urgencyScoreOf(b, now) - urgencyScoreOf(a, now),
-    remaining: (a, b) => headroomOf(b) - headroomOf(a),
+    // Weekly dates only: accounts that reset on the same date are separated by how much of
+    // the weekly limit is left, never by the 5h window.
+    weeklyReset: (a, b) =>
+      weeklyResetOf(a) - weeklyResetOf(b) || weeklyHeadroomOf(b) - weeklyHeadroomOf(a),
+    anyReset: (a, b) => nextResetOf(a) - nextResetOf(b) || headroomOf(b) - headroomOf(a),
+    urgency: (a, b) => urgencyScoreOf(b, now) - urgencyScoreOf(a, now) || headroomOf(b) - headroomOf(a),
+    remaining: (a, b) => headroomOf(b) - headroomOf(a) || weeklyResetOf(a) - weeklyResetOf(b),
     listOrder: () => 0,
   };
   const compare = cmp[order] ?? cmp[DEFAULT_AUTO_SWITCH_ORDER];
@@ -177,8 +226,6 @@ export function rankForAutoSwitch(
     return skip && skip.until > now ? 1 : 0;
   };
   const compare = compareByOrder(order, now);
-  // The list order is a choice of its own, so it takes no usage tie-break.
-  const tieBreak = order === "listOrder" ? () => 0 : (a: AutoSwitchAccount, b: AutoSwitchAccount) => headroomOf(b) - headroomOf(a);
   return accounts
     .filter((a) => eligible(a, options.minAvailablePercent ?? 0, options.includeActive))
     .sort(
@@ -186,41 +233,32 @@ export function rankForAutoSwitch(
         skipRank(a) - skipRank(b) ||
         // Infinity - Infinity is NaN; `||` turns that (and a tie) into the next key.
         compare(a, b) ||
-        tieBreak(a, b) ||
         (listOrder.get(a.id) ?? 0) - (listOrder.get(b.id) ?? 0)
     );
 }
 
 /** One sentence saying why this account is next. */
 export function reasonFor(acc: AutoSwitchAccount, order: AutoSwitchOrder, now: number): string {
-  const left = headroomOf(acc);
-  const reset = order === "anyReset" ? nextResetOf(acc) : weeklyResetOf(acc);
-  const name = order === "anyReset" ? "its next limit" : "its weekly limit";
+  const weekly = order !== "anyReset";
+  const left = weekly ? weeklyHeadroomOf(acc) : headroomOf(acc);
+  const reset = weekly ? weeklyResetOf(acc) : nextResetOf(acc);
+  const name = weekly ? "its weekly limit" : "its next limit";
+  const what = weekly ? "its weekly limit" : "its limits";
   if (order === "remaining") {
-    return `${left}% of its limits is left, the most of the available accounts.`;
+    return `${headroomOf(acc)}% of its limits is left, the most of the available accounts.`;
   }
   if (order === "listOrder") {
-    return `It is the first available account in the list, with ${left}% of its limits left.`;
+    return `It is the first available account in the list, with ${headroomOf(acc)}% of its limits left.`;
   }
   if (!Number.isFinite(reset)) {
-    return `${left}% of its limits is left; no reset time is known.`;
+    return `${left}% of ${what} is left; no reset date is known.`;
   }
-  const sentence = `${name} resets in ${fmtWait(Math.max(0, reset - now))}, the soonest of the available accounts, and ${left}% of its limits is left.`;
+  const sentence = `${name} resets in ${fmtWait(Math.max(0, reset - now))}, the soonest of the available accounts, and ${left}% of ${what} is left.`;
   return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
 function lower(sentence: string): string {
   return sentence.charAt(0).toLowerCase() + sentence.slice(1);
-}
-
-/** When the account is usable again, from its latest reading; null when unknown. */
-function availableAt(acc: AutoSwitchAccount, now: number): number | null {
-  if (acc.needsReauthorization) return null;
-  const blocked = windowsOf(acc).filter((w) => w.percent >= EXHAUSTED_PERCENT);
-  if (windowsOf(acc).length === 0) return null;
-  if (blocked.length === 0) return now;
-  const times = blocked.map(resetMs);
-  return times.every(Number.isFinite) ? Math.max(now, ...times) : null;
 }
 
 /** Why nothing can be taken, and when that changes. */
@@ -251,6 +289,16 @@ function waitPlan(accounts: AutoSwitchAccount[], now: number): AutoSwitchPlan {
   };
 }
 
+/** When the account is usable again, from its latest reading; null when unknown. */
+function availableAt(acc: AutoSwitchAccount, now: number, cap = switchOutPercentOf(acc)): number | null {
+  if (acc.needsReauthorization) return null;
+  const blocked = spentWindows(acc, cap);
+  if (windowsOf(acc).length === 0) return null;
+  if (blocked.length === 0) return now;
+  const times = blocked.map(resetMs);
+  return times.every(Number.isFinite) ? Math.max(now, ...times) : null;
+}
+
 /**
  * What auto-switching should do now: keep the active account while it can still be used,
  * otherwise take the best available one, otherwise wait.
@@ -263,6 +311,40 @@ export function planAutoSwitch(
   const order = options.order ?? DEFAULT_AUTO_SWITCH_ORDER;
   const min = options.minAvailablePercent ?? 0;
   const when = options.when ?? DEFAULT_AUTO_SWITCH_WHEN;
+
+  // A marked account overrides the order, its own opt-out, and the minimum: it was chosen
+  // by hand, so auto-switching holds it and waits rather than moving on.
+  const held = accounts.find((a) => a.keepActive);
+  if (held) {
+    const name = `"${held.label}"`;
+    if (held.isActive) {
+      return { action: "stay", held: true, ranked: [], reason: `${name} is kept active, so auto-switching is paused.` };
+    }
+    if (held.needsReauthorization) {
+      return {
+        action: "wait",
+        held: true,
+        ranked: [],
+        reason: `${name} is kept active but its login expired; reauthorize it, or stop keeping it active.`,
+      };
+    }
+    // The mark overrides the account's own hand-over limit too: only a used-up limit stops it.
+    if (!availableNow(held, 0, EXHAUSTED_PERCENT)) {
+      const at = availableAt(held, now, EXHAUSTED_PERCENT);
+      return {
+        action: "wait",
+        held: true,
+        ranked: [],
+        reason:
+          at === null || at <= now
+            ? `${name} is kept active but has no limit left; auto-switching stays paused until you stop keeping it active.`
+            : `${name} is kept active but has no limit left; it can be used again in ${fmtWait(at - now)}.`,
+        nextAvailableAt: at ?? undefined,
+      };
+    }
+    return { action: "switch", held: true, target: held, ranked: [held], reason: `${name} is kept active.` };
+  }
+
   const active = accounts.find((a) => a.isActive);
   const activeUsable = Boolean(active && takesPartInAutoSwitch(active) && availableNow(active, min));
 
@@ -273,6 +355,13 @@ export function planAutoSwitch(
 
   // Otherwise the order decides who should be active: an account that is still usable
   // holds the session only while the order puts it first.
+  // Why the active account is being left, when it is its own hand-over limit rather than
+  // an exhausted one: worth saying, because the limit is not used up.
+  const handedOver =
+    active && !activeUsable && switchOutPercentOf(active) < EXHAUSTED_PERCENT && spentWindows(active).length > 0
+      ? `"${active.label}" reached its ${switchOutPercentOf(active)}% hand-over limit. `
+      : "";
+
   const ranked = rankForAutoSwitch(accounts, {
     ...options,
     now,
@@ -281,7 +370,8 @@ export function planAutoSwitch(
     includeActive: activeUsable,
   });
   if (ranked.length === 0) {
-    return waitPlan(accounts, now);
+    const plan = waitPlan(accounts, now);
+    return { ...plan, reason: handedOver + plan.reason };
   }
   if (ranked[0].isActive) {
     return {
@@ -290,7 +380,12 @@ export function planAutoSwitch(
       reason: `"${ranked[0].label}" is the account to use now: ${lower(reasonFor(ranked[0], order, now))}`,
     };
   }
-  return { action: "switch", target: ranked[0], ranked: ranked.filter((a) => !a.isActive), reason: reasonFor(ranked[0], order, now) };
+  return {
+    action: "switch",
+    target: ranked[0],
+    ranked: ranked.filter((a) => !a.isActive),
+    reason: handedOver + reasonFor(ranked[0], order, now),
+  };
 }
 
 /**

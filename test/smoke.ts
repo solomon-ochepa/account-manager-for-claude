@@ -35,7 +35,10 @@ import { noProposalReason, propose, rankAccounts, urgencyOf } from "../src/propo
 import {
   AutoSwitchAccount,
   AutoSwitchSkips,
+  switchOutPercentOf,
+  weeklyHeadroomOf,
   availableNow,
+  headroomOf,
   planAutoSwitch,
   rankForAutoSwitch,
   weeklyResetOf,
@@ -486,6 +489,35 @@ async function runAccountStoreTests(): Promise<void> {
     scopes: [],
   });
   check("does not match accounts by empty refresh token", matched === undefined);
+
+  // Only one account at a time is kept active, and the opt-out is its own flag.
+  const keepStore = createStore();
+  const creds = { accessToken: "k", refreshToken: "k", expiresAt: 1, scopes: [] };
+  const first = await keepStore.addFromCreds("First", creds);
+  const second = await keepStore.addFromCreds("Second", creds);
+  await keepStore.setKeepActive(first.id, true);
+  check("an account can be kept active", keepStore.keptActive()?.id === first.id);
+  await keepStore.setKeepActive(second.id, true);
+  check(
+    "keeping another one takes the mark off the first",
+    keepStore.keptActive()?.id === second.id && !keepStore.get(first.id)?.keepActive
+  );
+  await keepStore.setAutoSwitch(second.id, false);
+  check(
+    "the opt-out and the keep-active mark are separate",
+    keepStore.get(second.id)?.autoSwitch === false && keepStore.get(second.id)?.keepActive === true
+  );
+  await keepStore.setKeepActive(second.id, false);
+  check("the mark can be taken off", keepStore.keptActive() === undefined);
+
+  await keepStore.setSwitchOutPercent(first.id, 80);
+  check("an account keeps its own hand-over limit", keepStore.get(first.id)?.switchOutPercent === 80);
+  await keepStore.setSwitchOutPercent(first.id, 120);
+  check("a limit outside 1-100 clears it", keepStore.get(first.id)?.switchOutPercent === undefined);
+  await keepStore.setSwitchOutPercent(first.id, 75.4);
+  check("a fractional limit is rounded", keepStore.get(first.id)?.switchOutPercent === 75);
+  await keepStore.setSwitchOutPercent(first.id, undefined);
+  check("the limit can be cleared", keepStore.get(first.id)?.switchOutPercent === undefined);
 
   await store.updateUsage(profile.id, {
     fetchedAt: 333,
@@ -1585,7 +1617,8 @@ function runAutoSwitchTests(): void {
   check("the active account is used up, so the nearest reset is taken", plan.action === "switch" && plan.target?.id === "soon");
   check(
     "the reason names the reset and what is left",
-    plan.reason === "Its weekly limit resets in 1 d 6 h, the soonest of the available accounts, and 65% of its limits is left."
+    plan.reason ===
+      "Its weekly limit resets in 1 d 6 h, the soonest of the available accounts, and 65% of its weekly limit is left."
   );
 
   const fine = acc("ok", [w("session", 10, 3 * h), w("weekly_all", 10, 200 * h)], { isActive: true });
@@ -1636,6 +1669,95 @@ function runAutoSwitchTests(): void {
     ids(rankForAutoSwitch(accounts, { now: now + 6 * 60_000, skipped: skips.active(now + 6 * 60_000) })) === "soon,mid,late"
   );
   check("an expired skip is forgotten", skips.get("soon", now + 6 * 60_000) === undefined);
+
+  // The weekly date decides, and the 5h window never gets a say — not as the key, and
+  // not as the tie-break between accounts that reset on the same date.
+  const sameWeek = [
+    acc("spentWeek", [w("session", 1, 4 * h), w("weekly_all", 70, 48 * h)]),
+    acc("freshWeek", [w("session", 90, 1 * h), w("weekly_all", 20, 48 * h)]),
+  ];
+  check(
+    "a shared reset date is broken by the weekly limit, not by the 5h one",
+    ids(rankForAutoSwitch(sameWeek, { now })) === "freshWeek,spentWeek"
+  );
+  check(
+    "the 5h window is not part of the weekly headroom",
+    weeklyHeadroomOf(sameWeek[1]) === 80 && headroomOf(sameWeek[1]) === 10
+  );
+  check(
+    "a soon-resetting 5h window does not pull an account forward",
+    ids(
+      rankForAutoSwitch(
+        [acc("weekLater", [w("session", 50, 5 * 60_000), w("weekly_all", 10, 100 * h)]), accounts[2]],
+        { now }
+      )
+    ) === "soon,weekLater"
+  );
+
+  // An account's own hand-over limit: spent at that percent, without waiting for 100%.
+  const capped = (percent: number | undefined, extra: Partial<AutoSwitchAccount> = {}) =>
+    acc("capped", [w("session", 85, 4 * h), w("weekly_all", 60, 10 * h)], {
+      switchOutPercent: percent,
+      ...extra,
+    });
+  check("no limit set means it is used until a limit is used up", switchOutPercentOf(capped(undefined)) === 100);
+  check("a limit outside 1-100 is ignored", switchOutPercentOf(capped(0)) === 100 && switchOutPercentOf(capped(140)) === 100);
+  check("an account below its limit is still available", availableNow(capped(90)));
+  check("an account that reached its limit is not", !availableNow(capped(80)));
+  check(
+    "reaching the limit takes it out of the queue, used up or not",
+    ids(rankForAutoSwitch([capped(80), accounts[1]], { now })) === "late" &&
+      ids(rankForAutoSwitch([capped(90), accounts[1]], { now })) === "capped,late"
+  );
+  const handover = planAutoSwitch([capped(80, { isActive: true }), accounts[2], accounts[1]], { now });
+  check(
+    "the active account is handed over at its own limit, and the log says why",
+    handover.action === "switch" &&
+      handover.target?.id === "soon" &&
+      handover.reason.startsWith('"capped" reached its 80% hand-over limit. Its weekly limit resets in')
+  );
+  check(
+    "a kept account ignores its own hand-over limit",
+    planAutoSwitch([capped(80, { keepActive: true }), accounts[2]], { now }).target?.id === "capped"
+  );
+  check(
+    "a kept account is still stopped by a limit that is really used up",
+    planAutoSwitch(
+      [acc("kept", [w("session", 100, 45 * 60_000)], { keepActive: true, switchOutPercent: 50 }), accounts[2]],
+      { now }
+    ).action === "wait"
+  );
+
+  // An account marked to stay in use overrides the order until the mark comes off.
+  const kept = (extra: Partial<AutoSwitchAccount> = {}) =>
+    acc("kept", [w("session", 50, 2 * h), w("weekly_all", 50, 500 * h)], { keepActive: true, ...extra });
+  check(
+    "a kept account that is already active pauses auto-switching",
+    planAutoSwitch([kept({ isActive: true }), accounts[2]], { now }).action === "stay"
+  );
+  const takeKept = planAutoSwitch([kept(), accounts[2], accounts[1]], { now });
+  check(
+    "a kept account is taken even though the order would choose another",
+    takeKept.action === "switch" && takeKept.target?.id === "kept" && takeKept.held === true
+  );
+  check(
+    "keeping an account active overrides its own opt-out and the minimum",
+    planAutoSwitch([kept({ autoSwitch: false }), accounts[2]], { now, minAvailablePercent: 90 }).target?.id === "kept"
+  );
+  const keptBlocked = planAutoSwitch(
+    [acc("kept", [w("session", 100, 90 * 60_000)], { keepActive: true }), accounts[2]],
+    { now }
+  );
+  check(
+    "a kept account with nothing left waits instead of moving on",
+    keptBlocked.action === "wait" &&
+      keptBlocked.reason === '"kept" is kept active but has no limit left; it can be used again in 1 h 30 min.'
+  );
+  check(
+    "a kept account whose login expired says so",
+    planAutoSwitch([kept({ needsReauthorization: true }), accounts[2]], { now }).reason ===
+      '"kept" is kept active but its login expired; reauthorize it, or stop keeping it active.'
+  );
 
   // The account list can follow the same order.
   const listOrder = new Map(accounts.map((a, i) => [a.id, i]));

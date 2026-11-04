@@ -95,10 +95,23 @@ turns it off.
   one being spent — it switches as soon as another account takes that place, not only when the
   active account runs out. `autoSwitch.when` = `exhausted` makes it a pure failover instead: the
   active account keeps the session until one of its limits runs out.
+- **Give an account a hand-over limit.** **Set a hand-over limit…** on a card's **⋯** menu takes a
+  percent: once any of that account's limits reaches it, auto-switching treats the account as
+  spent and takes the next one in the queue, without waiting for the limit to be used up. The card
+  shows **Out at 80%**, and the log says `"X" reached its 80% hand-over limit.` before naming the
+  account it moved to. Leave the box empty to use the account until a limit is actually used up.
+- **Keep one account active to override it.** **Keep active (pause auto-switching)** on a card's
+  **⋯** menu holds that account: auto-switching takes it, then moves nowhere else — not even when
+  its limits run out, where it waits and says when the account is usable again. The card is marked
+  **Kept active**, the mark beats the account's own opt-out, its hand-over limit and the minimum,
+  only one account can carry it, and **Stop keeping active** hands the choice back.
 - **The nearest reset goes first.** Capacity that is not used before a limit resets is lost, so
-  the account whose weekly (7-day) limit resets soonest is taken first. `autoSwitch.order` chooses
-  another rule: the soonest reset of any limit, the capacity that would be lost soonest, the most
-  usage left, or your own list order.
+  the account whose weekly (7-day) limit resets soonest is taken first. Only weekly dates count:
+  the 5-hour window refills several times a day, so it says nothing about which account to spend
+  this week, and it is left out of the order and of the tie-break between accounts that reset on
+  the same date. `autoSwitch.order` chooses another rule: the soonest reset of any limit (which
+  does count the 5-hour window), the capacity that would be lost soonest, the most usage left, or
+  your own list order.
 - **Availability is checked before the switch**, not just taken from the last poll: the account's
   usage is read once more, and `autoSwitch.minAvailablePercent` sets how much of every limit it
   must still have.
@@ -187,6 +200,8 @@ account can be used, across a week or hour by hour for a single day.
 | `Claude: Complete profile reauthorization` | Finish a reauthorization |
 | `Claude: Undo last switch` | Restore the previous account |
 | `Claude: Switch to the next account now (auto-switch)` | Run one auto-switch round now |
+| `Claude: Set an account's auto-switch hand-over limit` | Hand an account over at a percent of its own |
+| `Claude: Keep an account active (pause auto-switching)` | Hold one account until you release it |
 | `Claude: Include or exclude an account in auto-switching` | Opt an account in or out |
 | `Claude: Show the auto-switch log` | Open the log of auto-switch decisions |
 | `Claude: Rename account profile` / `Remove account profile` | Manage saved accounts |
